@@ -15,10 +15,10 @@ requirements.txt: list Python packages (install with `pip install -r requirement
 Sprint 1 to-do:
 - [x] Choose language
 - [x] Create repo
-- [ ] Slack channel + roster
-- [ ] Trello board
-- [ ] Weekly status posts (Thu)
-- [ ] Word doc (team, members, language, issues) submitted
+- [x] Slack channel + roster
+- [x] Trello board
+- [x] Weekly status posts (Thu)
+- [x] Word doc (team, members, language, issues) submitted
 
 ## How to Get (Clone) This Repo to personal PC
 1. Pick (or create) a folder where you keep projects.
