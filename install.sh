@@ -45,9 +45,12 @@ PHOTON_DB_USER=$DBU
 PHOTON_DB_PASSWORD=$DBP
 PHOTON_DB_HOST=$DBH
 PHOTON_DB_PORT=$DBPORT
-ENVOEF
-    echo ".env created. (Load manually: export \
-$(grep -v '^#' .env | xargs -d '\n'))"
+ENVEOF
+    echo ".env created. To load into current shell run:" 
+    echo "  export \"$(grep -v '^#' .env | xargs)\"" | sed 's/ /"\n  export "/g' > .env.exports.tmp
+    echo "  set -a; source .env; set +a   # (alternative)" 
+    # Simple one-liner export hint (without newlines if xargs -d unsupported)
+    echo "One-line load: export $(grep -v '^#' .env | xargs)"
 fi
 
 echo
