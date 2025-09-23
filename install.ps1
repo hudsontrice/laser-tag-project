@@ -10,11 +10,36 @@ if (-not $python) {
 
 Write-Host "Installing required Python packages..."
 python -m pip install --upgrade pip
-python -m pip install psycopg2-binary
+if (Test-Path requirements.txt) {
+    python -m pip install -r requirements.txt
+} else {
+    python -m pip install psycopg2-binary
+}
 
 Write-Host "\nMake sure you have PostgreSQL installed and running."
-Write-Host "You must create a database named 'photon' and a table 'players' with columns 'id' (int, primary key) and 'codename' (varchar)."
-Write-Host "Edit src/ui/player_entry.py with your actual database username and password."
+Write-Host "Database expected: photon; table: players(id int primary key, codename varchar(50))."
+Write-Host "You can set environment variables PHOTON_DB_NAME, PHOTON_DB_USER, PHOTON_DB_PASSWORD, PHOTON_DB_HOST, PHOTON_DB_PORT before launching."
 
-Write-Host "\nRunning the Player Entry UI..."
-python src/ui/player_entry.py
+$createEnv = Read-Host "Create a .env file for DB settings now? (y/n)"
+if ($createEnv -eq 'y') {
+    $dbUser = Read-Host "DB user (default: student)"
+    if (-not $dbUser) { $dbUser = 'student' }
+    $dbPass = Read-Host "DB password (leave blank if none)"
+    $dbHost = Read-Host "DB host (default: localhost)"
+    if (-not $dbHost) { $dbHost = 'localhost' }
+    $dbPort = Read-Host "DB port (default: 5432)"
+    if (-not $dbPort) { $dbPort = '5432' }
+    Set-Content -Path .env -Value @(
+        "PHOTON_DB_NAME=photon",
+        "PHOTON_DB_USER=$dbUser",
+        "PHOTON_DB_PASSWORD=$dbPass",
+        "PHOTON_DB_HOST=$dbHost",
+        "PHOTON_DB_PORT=$dbPort"
+    )
+    Write-Host ".env file created. Remember to load it in your shell if needed."
+}
+
+$runNow = Read-Host "Run the player entry screen now? (y/n)"
+if ($runNow -eq 'y') {
+    python src/ui/player_entry.py
+}

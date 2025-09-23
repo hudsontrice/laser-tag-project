@@ -11,20 +11,47 @@ sudo apt-get install -y python3 python3-pip python3-tk postgresql postgresql-con
 
 echo "Installing required Python packages..."
 pip3 install --upgrade pip
-pip3 install psycopg2-binary
+if [ -f requirements.txt ]; then
+    pip3 install -r requirements.txt
+else
+    pip3 install psycopg2-binary
+fi
 
 echo
 cat << EOF
-Make sure PostgreSQL is running and you have created:
-- A database named 'photon'
-- A table 'players' with columns 'id' (int, primary key) and 'codename' (varchar)
+PostgreSQL expectations:
+    Database: photon
+    Table: players(id int primary key, codename varchar(50))
 
-Edit src/ui/player_entry.py with your actual database username and password.
+You may export environment variables before running:
+    export PHOTON_DB_NAME=photon
+    export PHOTON_DB_USER=student
+    export PHOTON_DB_PASSWORD=secret
+    export PHOTON_DB_HOST=localhost
+    export PHOTON_DB_PORT=5432
+
+Or let this script create a .env file.
 EOF
 
+read -p "Create a .env file now? (y/n): " make_env
+if [ "$make_env" = "y" ]; then
+    read -p "DB user (default: student): " DBU; DBU=${DBU:-student}
+    read -p "DB password (blank allowed): " DBP
+    read -p "DB host (default: localhost): " DBH; DBH=${DBH:-localhost}
+    read -p "DB port (default: 5432): " DBPORT; DBPORT=${DBPORT:-5432}
+    cat > .env << ENVEOF
+PHOTON_DB_NAME=photon
+PHOTON_DB_USER=$DBU
+PHOTON_DB_PASSWORD=$DBP
+PHOTON_DB_HOST=$DBH
+PHOTON_DB_PORT=$DBPORT
+ENVOEF
+    echo ".env created. (Load manually: export \
+$(grep -v '^#' .env | xargs -d '\n'))"
+fi
+
 echo
-read -p "Run the app (splash -> player entry) now? (y/n): " run_now
+read -p "Run the player entry screen now? (y/n): " run_now
 if [ "$run_now" == "y" ]; then
-    # Run as a module to ensure package imports work
-    python3 -m src.main.app
+    python3 src/ui/player_entry.py
 fi

@@ -1,37 +1,38 @@
+"""Simple functional splash screen placeholder.
+
+Replaces the earlier no-op placeholder so the main app can demonstrate
+multi-screen navigation: splash -> player entry. Intended to be replaced
+later with a richer graphical version.
+"""
+
 import tkinter as tk
 
 
 class SplashScreen(tk.Frame):
-	"""A minimal placeholder splash screen.
-
-	This shows a simple label so you can verify the splash flow works now.
-	The other teammate can replace this with an image later without changing
-	the app flow.
-	"""
-
 	def __init__(self, master: tk.Misc):
-		super().__init__(master)
-		# Make root expandable when using grid
+		super().__init__(master, bg="#111111")
+		self.grid(row=0, column=0, sticky="nsew")
 		master.rowconfigure(0, weight=1)
 		master.columnconfigure(0, weight=1)
 
-		# Place this frame with grid so we don't mix managers on the same parent
-		self.grid(row=0, column=0, sticky="nsew")
-
-		# Inside this frame we can use pack freely
-		self.configure(bg="#111")
-		label = tk.Label(
+		title = tk.Label(
 			self,
-			text="Laser Tag System\nLoading...",
-			fg="#0f0",
-			bg="#111",
-			font=("Segoe UI", 24, "bold"),
-			justify="center",
+			text="Laser Tag System",
+			font=("Segoe UI", 28, "bold"),
+			fg="#4ade80",  # green accent
+			bg="#111111",
 		)
-		label.pack(expand=True, fill="both", padx=24, pady=24)
+		subtitle = tk.Label(
+			self,
+			text="Loading...",
+			font=("Segoe UI", 14),
+			fg="#cccccc",
+			bg="#111111",
+		)
+		title.pack(pady=(60, 12))
+		subtitle.pack()
 
 	def close(self):
-		"""Remove the splash from the layout and destroy it."""
 		self.grid_forget()
 		self.destroy()
 

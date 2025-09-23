@@ -1,38 +1,43 @@
+"""Launcher: splash -> player entry.
+
+Provides a simple two-stage UI flow to satisfy multi-screen navigation
+requirements while keeping scope minimal. Splash is a lightweight
+placeholder in `src/ui/splash.py`.
+"""
+
 import tkinter as tk
 
 from src.ui.splash import SplashScreen
 from src.ui.player_entry import PlayerEntry
 
 
-def center_window(win: tk.Tk, width: int = 640, height: int = 360) -> None:
-	win.update_idletasks()
-	x = (win.winfo_screenwidth() // 2) - (width // 2)
-	y = (win.winfo_screenheight() // 2) - (height // 2)
-	win.geometry(f"{width}x{height}+{x}+{y}")
+SPLASH_DURATION_MS = 1800  # adjustable delay before switching screens
 
 
-def main() -> None:
+def center(root: tk.Tk, w: int = 720, h: int = 420) -> None:
+	root.update_idletasks()
+	x = (root.winfo_screenwidth() // 2) - (w // 2)
+	y = (root.winfo_screenheight() // 2) - (h // 2)
+	root.geometry(f"{w}x{h}+{x}+{y}")
+
+
+def launch():
 	root = tk.Tk()
 	root.title("Laser Tag System")
-	center_window(root, 720, 420)
+	center(root)
 
-	# Show placeholder splash first
 	splash = SplashScreen(root)
 
-	# After 2 seconds, remove splash and show Player Entry
 	def show_player_entry():
 		splash.close()
-		# Ensure the content area expands
-		root.rowconfigure(0, weight=1)
-		root.columnconfigure(0, weight=1)
-		player_entry = PlayerEntry(root)
-		# PlayerEntry already calls grid() in its __init__
-		player_entry.grid(sticky="nsew")
+		player = PlayerEntry(root)
+		# PlayerEntry already grids itself in __init__
+		player.grid(sticky="nsew")
 
-	root.after(2000, show_player_entry)
+	root.after(SPLASH_DURATION_MS, show_player_entry)
 	root.mainloop()
 
 
-if __name__ == "__main__":
-	main()
+if __name__ == "__main__":  # allow module import without auto-run
+	launch()
 
