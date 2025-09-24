@@ -21,7 +21,7 @@ echo
 cat << EOF
 PostgreSQL expectations:
     Database: photon
-    Table: players(id int primary key, codename varchar(50))
+    Table: players(id int primary key, codename varchar(255))
 
 You may export environment variables before running:
     export PHOTON_DB_NAME=photon
@@ -46,14 +46,21 @@ PHOTON_DB_PASSWORD=$DBP
 PHOTON_DB_HOST=$DBH
 PHOTON_DB_PORT=$DBPORT
 ENVEOF
-    echo ".env created. To load into current shell run:" 
-    echo "  export \"$(grep -v '^#' .env | xargs)\"" | sed 's/ /"\n  export "/g' > .env.exports.tmp
-    echo "  set -a; source .env; set +a   # (alternative)" 
-    # Simple one-liner export hint (without newlines if xargs -d unsupported)
-    echo "One-line load: export $(grep -v '^#' .env | xargs)"
+    echo ".env created in $(pwd)/.env"
+    echo "To load it into this shell run:"
+    echo "  set -a; source ./.env; set +a"
+    echo "Or start a new shell that sources .env, or export individual variables as needed."
 fi
 
 echo
+echo "Running DB connectivity test..."
+python3 tests/test_db.py
+if [ $? -eq 0 ]; then
+    echo "Database test succeeded."
+else
+    echo "Database test failed. See output above."
+fi
+
 read -p "Run the player entry screen now? (y/n): " run_now
 if [ "$run_now" == "y" ]; then
     python3 src/ui/player_entry.py
