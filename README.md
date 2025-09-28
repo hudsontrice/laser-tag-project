@@ -9,16 +9,17 @@ requirements.txt  # List of Python dependencies for the project
 .gitignore        # Specifies files Git should ignore
 .gitattributes    # Configures how Git handles line endings and file types
 ```
+## Team Members
+
+| GitHub Username | Real Name       |
+| --------------- | --------------- |
+| [`@hudsontrice`](https://github.com/hudsontrice)    | *Hudson Trice* |
+| [`@joshagodoy`](https://github.com/joshagodoy)      | *Josh Godoy* |
+| [`@houstonmyer`](https://github.com/houstonmyer)      | *Houston Myer* |
+| [`@jacksonharmon2`](https://github.com/jacksonharmon2)      | *Jackson Harmon* |
+| [`@griffinkminick`](https://github.com/griffinkminick)      | *Griffin Minick* |
 
 requirements.txt: list Python packages (install with `pip install -r requirements.txt`).
-
-Sprint 1 to-do:
-- [x] Choose language
-- [x] Create repo
-- [x] Slack channel + roster
-- [x] Trello board
-- [x] Weekly status posts (Thu)
-- [x] Word doc (team, members, language, issues) submitted
 
 ## How to Get (Clone) This Repo to personal PC
 1. Pick (or create) a folder where you keep projects.
