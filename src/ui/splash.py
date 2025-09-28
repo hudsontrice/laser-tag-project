@@ -1,33 +1,35 @@
-## photon-main-referenceFiles % git pull origin main
 
+from __future__ import annotations
 
-##imported libraries
-import tkinter as tk
+from tkinter import Frame, Label, Misc
+from typing import Callable, Optional
+
 from PIL import Image, ImageTk
 
-##window tkinter object
-window = tk.Tk()
-
-##loads and resizes image
-splashfile = Image.open('logo.jpg')
-splashfile = splashfile.resize((1000, 800))
-splashphoto = ImageTk.PhotoImage(splashfile)
-
-##for some reason this is how tkiner wants a photo, conversion
-root = tk.Label(window, image=splashphoto)
-root.pack()
-
-##placement on screen
-window.geometry(f"{splashfile.width}x{splashfile.height}")
-window.update_idletasks()
-windowX = (window.winfo_screenwidth() - window.winfo_width()) // 2
-windowY = (window.winfo_screenheight() - window.winfo_height()) // 2
-window.geometry(f"+{windowX}+{windowY}")
-
-##destroy after 3 seconds, 3000ms
-window.after(3000, window.destroy)
+LOGO_PATH = "src/assets/logo.jpg" # Moved image to assets folder
 
 
-window.mainloop()
+class SplashScreen(Frame): # Changed to be call based, that way it can be used from the app.py folder
+	"""Minimal splash: show logo, wait, then trigger callback."""
 
-##need to link
+	def __init__(
+		self,
+		master: Misc,
+		*,
+		duration_ms: int = 3000,
+		on_complete: Optional[Callable[[], None]] = None,
+	) -> None:
+		super().__init__(master)
+		self._photo = ImageTk.PhotoImage(Image.open(LOGO_PATH).resize((1000, 800)))
+		Label(self, image=self._photo, borderwidth=0, highlightthickness=0).pack()
+		self.pack()
+		self._on_complete = on_complete
+		self.after(duration_ms, self._finish)
+
+	def _finish(self) -> None:
+		self.destroy()
+		if self._on_complete:
+			self._on_complete()
+
+
+__all__ = ["SplashScreen"]
