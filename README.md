@@ -16,12 +16,15 @@ Language: Python 3
 
 ## Quick Setup
 
-Install the Python dependencies with the helper script:
+From a fresh terminal on Debian/Ubuntu, run the helper script (it will prompt for sudo to install missing packages such as Python 3, pip, build tools, and the project dependencies):
 
 ```bash
 bash scripts/install.sh
 ```
-> **Check:** If installing `psycopg2` fails on Debian/Ubuntu, run `sudo apt-get install python3-dev libpq-dev` and rerun the script.
+
+You can override the Python interpreter with `PYTHON=/path/to/python bash scripts/install.sh`.
+
+> **Other distros/macOS:** Install Python 3.9+, pip, and the packages in `requirements.txt` using your platform's package manager before running the app.
 
 ### Run the Instructor UI
 
