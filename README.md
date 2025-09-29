@@ -32,14 +32,6 @@ You can override the Python interpreter with `PYTHON=/path/to/python bash script
 python3 -m src.main.app
 ```
 
-### Run Tests (N/A for now)
-
-```bash
-pytest
-```
-
----
-
 ## Repository Contents
 
 ```
