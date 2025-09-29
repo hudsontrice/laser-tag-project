@@ -62,7 +62,7 @@ ensure_pip() {
 }
 
 ensure_build_tools() {
-	apt_install build-essential python3-dev libpq-dev
+	apt_install build-essential python3-dev libpq-dev python3-tk
 }
 
 ensure_python
@@ -96,5 +96,7 @@ Launch the UI:
 If psycopg2 fails to install, ensure PostgreSQL client libraries are present.
 On Debian/Ubuntu systems run:
   sudo apt-get install python3-dev libpq-dev
+
+If Tkinter graphics are still missing, confirm that python3-tk was installed.
 
 EOF
