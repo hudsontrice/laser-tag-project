@@ -24,8 +24,6 @@ bash scripts/install.sh
 
 You can override the Python interpreter with `PYTHON=/path/to/python bash scripts/install.sh`.
 
-> **Other distros/macOS:** Install Python 3.9+, pip, and the packages in `requirements.txt` using your platform's package manager before running the app.
-> **Other distros/macOS:** Install Python 3.9+, pip, Tkinter (python3-tk / python-tk), and the packages in `requirements.txt` using your platform's package manager before running the app.
 ### Run the Instructor UI
 
 ```bash
