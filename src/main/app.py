@@ -9,6 +9,8 @@ from src.ui.countdown import Countdown
 from src.ui.player_entry import PlayerEntry
 from src.ui.play_action import PlayAction
 from src.ui.splash import SplashScreen
+from src.ui.countdown import Countdown   # ← ADD
+from src.ui.play_action import PlayAction  # Example game UI import
 
 
 SPLASH_DURATION_MS = 3000
