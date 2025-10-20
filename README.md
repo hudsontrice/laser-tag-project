@@ -1,4 +1,4 @@
-# Photon Laser Tag Project (Sprint 2)
+# Photon Laser Tag Project (Sprint 3)
 
 Language: Python 3
 
