@@ -10,7 +10,7 @@ import os
 import random
 import tkinter as tk
 from tkinter import messagebox
-from typing import Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 from src.db import db_connect
 from src.net.udp_sender import UDPSender
@@ -22,7 +22,7 @@ DEFAULT_UDP_PORT = int(os.getenv("PHOTON_UDP_PORT", "7500"))
 class PlayerEntry(tk.Frame):
     TEAM_SIZE = 20
 
-    def __init__(self, master: tk.Misc):
+    def __init__(self, master: tk.Misc, on_complete: Optional[Callable[[], None]] = None) -> None:
         super().__init__(master, bg="#040404")
         self.grid(row=0, column=0, sticky="nsew")
         master.rowconfigure(0, weight=1)
@@ -35,6 +35,9 @@ class PlayerEntry(tk.Frame):
         self.equipment_var = tk.StringVar()
         self.target_ip_var = tk.StringVar(value=self.sender.ip)
         self.target_port_var = tk.StringVar(value=str(self.sender.port))
+        self.on_complete = on_complete
+        self._roster_snapshot: Optional[Tuple[List[str], List[str]]] = None
+        self._is_cleaned = False
 
         self.team_slots: Dict[str, List[Dict[str, tk.StringVar]]] = {
             "red": self._make_empty_slots(),
@@ -117,9 +120,10 @@ class PlayerEntry(tk.Frame):
         self.player_entry.bind("<FocusOut>", self._autofill_codename)
         self.player_entry.bind("<Return>", self._autofill_codename)
         self.equipment_entry.bind("<Return>", lambda _event: self.save_player())
+        self.master.bind_all("<F5>", self.close_app)
         ##this is the added f12 thing, pretty much the same as the above. fn + f12 for mac cause the volume button
         self.master.bind_all("<F12>", lambda event: self._clear_roster())
-        self.master.focus_force() 
+        self.master.focus_force()
 
     def _create_team_frame(self, parent: tk.Frame, title: str, bg_color: str, slots: List[Dict[str, tk.StringVar]]) -> tk.Frame:
         frame = tk.LabelFrame(parent, text=title, bg=bg_color, fg="#f0f0f0", padx=12, pady=12)
@@ -245,6 +249,43 @@ class PlayerEntry(tk.Frame):
 
         self._clear_form()
 
+    def get_rosters(self) -> Tuple[List[str], List[str]]:
+        def _extract(team: str) -> List[str]:
+            names: List[str] = []
+            for slot in self.team_slots[team]:
+                name = slot["name"].get().strip()
+                if name:
+                    names.append(name)
+            return names
+
+        return _extract("red"), _extract("green")
+
+    def pop_rosters(self) -> Tuple[List[str], List[str]]:
+        if self._roster_snapshot is not None:
+            rosters = self._roster_snapshot
+            self._roster_snapshot = None
+            return rosters
+
+        return self.get_rosters()
+
+    def cleanup(self) -> None:
+        if self._is_cleaned:
+            return
+
+        self._is_cleaned = True
+
+        try:
+            self.master.unbind_all("<F5>")
+            self.master.unbind_all("<F12>")
+        except Exception:
+            pass
+
+        try:
+            self.sender.close()
+        finally:
+            if self.winfo_exists():
+                self.destroy()
+
     def _place_player(self, team: str, player_id: int, codename: str, equipment_id: int) -> None:
         # Remove stale entries before reassigning the player to a new slot.
         previous_location = self._find_player_slot(player_id)
@@ -292,9 +333,14 @@ class PlayerEntry(tk.Frame):
         except ValueError:
             return None
 
-    def close_app(self) -> None:
-        self.sender.close()
-        self.master.destroy()
+    def close_app(self, _event: Optional[tk.Event] = None) -> str:
+        self._roster_snapshot = self.get_rosters()
+        self.cleanup()
+
+        if callable(self.on_complete):
+            self.on_complete()
+
+        return "break"
 
 
 __all__ = ["PlayerEntry"]
