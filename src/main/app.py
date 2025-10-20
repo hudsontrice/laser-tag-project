@@ -3,16 +3,18 @@ from __future__ import annotations
 import os
 import tkinter as tk
 from pathlib import Path
+from typing import Optional
 
+from src.ui.countdown import Countdown
 from src.ui.player_entry import PlayerEntry
+from src.ui.play_action import PlayAction
 from src.ui.splash import SplashScreen
-from src.ui.countdown import Countdown   # ← ADD
 
 
 SPLASH_DURATION_MS = 3000
 WINDOW_GEOMETRY = os.getenv("PHOTON_WINDOW_GEOMETRY", "1024x720")
-assets_dir = Path(__file__).resolve().parent.parent / "assets"
-COUNTDOWN_IMAGES_DIR = assets_dir  # ← ADD
+ASSETS_DIR = Path(__file__).resolve().parents[1] / "assets"
+COUNTDOWN_IMAGES_DIR = str(ASSETS_DIR)
 
 
 def _center(root: tk.Tk, geometry: str) -> None:
@@ -30,50 +32,59 @@ def launch() -> None:
     root = tk.Tk()
     root.title("Photon Entry Terminal")
     _center(root, WINDOW_GEOMETRY)
+
+    root.rowconfigure(0, weight=1)
+    root.columnconfigure(0, weight=1)
+
+    entry: Optional[PlayerEntry] = None
+    countdown_view: Optional[Countdown] = None
+    play_action_view: Optional[PlayAction] = None
+    red_roster: list[str] = []
+    green_roster: list[str] = []
     
     def _start_countdown() -> None:
-            Countdown(
-                root,
-                images_dir=COUNTDOWN_IMAGES_DIR,
-                alert_ms=5000,
-                background_ms=5000,
-                step_ms=1000,
-                on_complete=_launch_game,   # (3) after countdown → game start hook
-                # size=(1024, 720),          # optional resize
-            )
+        nonlocal entry, countdown_view, red_roster, green_roster
+
+        if entry is not None:
+            red_roster, green_roster = entry.pop_rosters()
+            entry.cleanup()
+            entry = None
+
+        if countdown_view is not None:
+            countdown_view.destroy()
+
+        countdown_view = Countdown(
+            root,
+            images_dir=COUNTDOWN_IMAGES_DIR,
+            alert_ms=5000,
+            background_ms=5000,
+            step_ms=1000,
+            on_complete=_launch_game,
+        )
             
     # (1) After splash → show PlayerEntry
     def _show_entry() -> None:
+        nonlocal entry, countdown_view
+
+        if countdown_view is not None:
+            countdown_view.destroy()
+            countdown_view = None
+
         entry = PlayerEntry(root, on_complete=_start_countdown)
-
-        # When user starts from PlayerEntry → (2) show Countdown
-        '''def _start_countdown() -> None:
-            try:
-                entry.destroy()  # clear PlayerEntry UI
-            except Exception:
-                pass
-            Countdown(
-                root,
-                images_dir=COUNTDOWN_IMAGES_DIR,
-                alert_ms=5000,
-                background_ms=5000,
-                step_ms=1000,
-                on_complete=_launch_game,   # (3) after countdown → game start hook
-                # size=(1024, 720),          # optional resize
-            )'''
-
-        # Preferred: PlayerEntry exposes an on_start callback
-        if hasattr(entry, "on_start"):
-            entry.on_start = _start_countdown
-
-        # Keep PlayerEntry’s close handler if present
-        if hasattr(entry, "close_app"):
-            root.protocol("WM_DELETE_WINDOW", entry.close_app)
+        root.protocol("WM_DELETE_WINDOW", entry.close_app)
 
     # (3) Game start hook (no audio here, just placeholder)
     def _launch_game() -> None:
-		#call to game file. 
-        print("Countdown finished — start the game here")
+        nonlocal countdown_view, play_action_view
+
+        if countdown_view is not None:
+            countdown_view.destroy()
+            countdown_view = None
+
+        if play_action_view is not None:
+            play_action_view.destroy()
+
+        play_action_view = PlayAction(root, red_roster, green_roster)
 
     # Splash first → then _show_entry
     SplashScreen(root, duration_ms=SPLASH_DURATION_MS, on_complete=_show_entry)
@@ -81,5 +92,5 @@ def launch() -> None:
     root.mainloop()
     
 if __name__ == "__main__":
-		launch()
+    launch()
 
