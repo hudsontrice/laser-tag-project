@@ -1,16 +1,19 @@
 """Player entry UI for Sprint 2 requirements."""
 
+
+
+
 from __future__ import annotations
+
 
 import os
 import random
 import tkinter as tk
 from tkinter import messagebox
-from typing import Dict, List, Optional, Tuple, Callable
+from typing import Dict, List, Optional, Tuple
 
 from src.db import db_connect
 from src.net.udp_sender import UDPSender
-from src.ui.play_action import PlayAction
 
 DEFAULT_UDP_IP = os.getenv("PHOTON_UDP_TARGET", "127.0.0.1")
 DEFAULT_UDP_PORT = int(os.getenv("PHOTON_UDP_PORT", "7500"))
@@ -19,7 +22,7 @@ DEFAULT_UDP_PORT = int(os.getenv("PHOTON_UDP_PORT", "7500"))
 class PlayerEntry(tk.Frame):
     TEAM_SIZE = 20
 
-    def __init__(self, master: tk.Misc, on_complete: Optional[Callable[[], None]] = None) -> None:
+    def __init__(self, master: tk.Misc):
         super().__init__(master, bg="#040404")
         self.grid(row=0, column=0, sticky="nsew")
         master.rowconfigure(0, weight=1)
@@ -32,7 +35,6 @@ class PlayerEntry(tk.Frame):
         self.equipment_var = tk.StringVar()
         self.target_ip_var = tk.StringVar(value=self.sender.ip)
         self.target_port_var = tk.StringVar(value=str(self.sender.port))
-        self.on_complete = on_complete
 
         self.team_slots: Dict[str, List[Dict[str, tk.StringVar]]] = {
             "red": self._make_empty_slots(),
@@ -115,7 +117,9 @@ class PlayerEntry(tk.Frame):
         self.player_entry.bind("<FocusOut>", self._autofill_codename)
         self.player_entry.bind("<Return>", self._autofill_codename)
         self.equipment_entry.bind("<Return>", lambda _event: self.save_player())
-        self.master.bind("<F5>", lambda _event: self.close_app()) # once F5 is pressed, the app will close and go to the game action
+        ##this is the added f12 thing, pretty much the same as the above. fn + f12 for mac cause the volume button
+        self.master.bind_all("<F12>", lambda event: self._clear_roster())
+        self.master.focus_force() 
 
     def _create_team_frame(self, parent: tk.Frame, title: str, bg_color: str, slots: List[Dict[str, tk.StringVar]]) -> tk.Frame:
         frame = tk.LabelFrame(parent, text=title, bg=bg_color, fg="#f0f0f0", padx=12, pady=12)
@@ -152,6 +156,16 @@ class PlayerEntry(tk.Frame):
         self.codename_var.set("")
         self.equipment_var.set("")
         self.player_entry.focus_set()
+
+##This is the method to clear the roster, pretty much just cycles through the values and sets them to "", 
+    def _clear_roster(self, _event=None) -> None:
+        print("clearing the roster")
+        for slots in self.team_slots.values():
+            for slot in slots:
+                slot["name"].set("")
+                slot["equip"].set("-")
+        self._clear_form()
+
 
     def save_player(self) -> None:
         # Main workflow: validate inputs, persist to the database, update the roster, and notify hardware.
@@ -281,7 +295,6 @@ class PlayerEntry(tk.Frame):
     def close_app(self) -> None:
         self.sender.close()
         self.master.destroy()
-        self.on_complete() # calls on_complete to go to the gaem action screen. 
 
 
 __all__ = ["PlayerEntry"]
