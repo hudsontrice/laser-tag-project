@@ -34,13 +34,18 @@ class Countdown(tk.Frame):
             raise FileNotFoundError(f"Images directory not found: {self.images_dir}")
 
         # UI container
-        self._label = tk.Label(self, borderwidth=0, highlightthickness=0)
-        self._label.pack(expand=True)
+       
 
         # Preload images
         self._alert_img = self._load_image(self.images_dir / "alert-on.tif")
         self._bg_img = self._load_image(self.images_dir / "background.tif")
         self._number_imgs = self._load_number_images()
+
+        self.backgound = tk.Label(self, image=self._bg_img)
+        self.backgound.place(x=0, y=0, relwidth=1, relheight=1)
+
+        self._label = tk.Label(self, borderwidth=0, highlightthickness=0)
+        self._label.place(relx=0.5, rely=0.55, anchor="center")
 
         # State for stepping through numbers
         self._num_index = 0
@@ -52,6 +57,7 @@ class Countdown(tk.Frame):
     # ------------------------
     # Image loading utilities
     # ------------------------
+    
     def _load_image(self, path: Path) -> ImageTk.PhotoImage:
         if not path.exists():
             raise FileNotFoundError(f"Required image missing: {path}")
@@ -85,7 +91,6 @@ class Countdown(tk.Frame):
         self._label.image = photo
 
     def _phase_background(self) -> None:
-        self._show(self._bg_img)
         if self._number_imgs:
             self.after(self.background_ms, self._phase_numbers)
         else:
@@ -98,7 +103,12 @@ class Countdown(tk.Frame):
             self._num_index += 1
             self.after(self.step_ms, self._phase_numbers)
         else:
+            print("Countdown complete.")
             self._finish()
+
+    def _on_close(self) -> None:
+        self.destroy()
+
 
     def _finish(self) -> None:
         self.destroy()
