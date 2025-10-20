@@ -11,8 +11,6 @@ from src.ui.countdown import Countdown
 from src.ui.player_entry import PlayerEntry
 from src.ui.play_action import PlayAction
 from src.ui.splash import SplashScreen
-from src.ui.countdown import Countdown   # ← ADD
-from src.ui.play_action import PlayAction  # Example game UI import
 
 
 SPLASH_DURATION_MS = 3000
@@ -119,8 +117,8 @@ def launch() -> None:
         if play_action_view is not None:
             play_action_view.destroy()
 
-    play_action_view = PlayAction(root, red_roster, green_roster)
-    _play_random_track(ASSETS_DIR)
+        play_action_view = PlayAction(root, red_roster, green_roster)
+        _play_random_track(ASSETS_DIR)
 
     # Splash first → then _show_entry
     SplashScreen(root, duration_ms=SPLASH_DURATION_MS, on_complete=_show_entry)
