@@ -24,24 +24,33 @@ bash scripts/install.sh
 
 You can override the Python interpreter with `PYTHON=/path/to/python bash scripts/install.sh`.
 
+---
+
 ### Run the Instructor UI
 
 ```bash
 python3 -m src.main.app
 ```
 
+> **Note:** After pressing **F5**, some VM instances may require you to **manually close the Player Entry screen** (using the “X” in the corner) before the clock display appears.  
+> This behavior only occurs on certain systems and is still under investigation.
+
+---
+
 ## Repository Contents
 
 ```
-README.md # Project documentation and instructions
-requirements.txt # Python dependencies installed by the helper script
-.gitignore # Specifies files Git should ignore
-.gitattributes # Configures how Git handles line endings and file types
-scripts/install.sh# Bash installer that bootstraps the environment
-scripts/run.sh # Placeholder for future launch helpers
-src/ # Application source code
-tests/ # pytest-based regression tests
+README.md             # Project documentation and instructions
+requirements.txt      # Python dependencies installed by the helper script
+.gitignore            # Specifies files Git should ignore
+.gitattributes        # Configures how Git handles line endings and file types
+scripts/install.sh    # Bash installer that bootstraps the environment
+scripts/run.sh        # Placeholder for future launch helpers
+src/                  # Application source code
+tests/                # pytest-based regression tests
 ```
+
+---
 
 ## src/ Directory Contents
 
