@@ -10,10 +10,11 @@ import os
 import random
 import tkinter as tk
 from tkinter import messagebox
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Callable
 
 from src.db import db_connect
 from src.net.udp_sender import UDPSender
+from src.ui.play_action import PlayAction
 
 DEFAULT_UDP_IP = os.getenv("PHOTON_UDP_TARGET", "127.0.0.1")
 DEFAULT_UDP_PORT = int(os.getenv("PHOTON_UDP_PORT", "7500"))
@@ -22,7 +23,7 @@ DEFAULT_UDP_PORT = int(os.getenv("PHOTON_UDP_PORT", "7500"))
 class PlayerEntry(tk.Frame):
     TEAM_SIZE = 20
 
-    def __init__(self, master: tk.Misc):
+    def __init__(self, master: tk.Misc, on_complete: Optional[Callable[[], None]] = None) -> None:
         super().__init__(master, bg="#040404")
         self.grid(row=0, column=0, sticky="nsew")
         master.rowconfigure(0, weight=1)
@@ -117,6 +118,7 @@ class PlayerEntry(tk.Frame):
         self.player_entry.bind("<FocusOut>", self._autofill_codename)
         self.player_entry.bind("<Return>", self._autofill_codename)
         self.equipment_entry.bind("<Return>", lambda _event: self.save_player())
+        self.master.bind_all("<F5>", lambda event: self.close_app())
         ##this is the added f12 thing, pretty much the same as the above. fn + f12 for mac cause the volume button
         self.master.bind_all("<F12>", lambda event: self._clear_roster())
         self.master.focus_force() 
@@ -295,6 +297,7 @@ class PlayerEntry(tk.Frame):
     def close_app(self) -> None:
         self.sender.close()
         self.master.destroy()
+        self.on_complete()
 
 
 __all__ = ["PlayerEntry"]

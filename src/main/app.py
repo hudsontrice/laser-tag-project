@@ -30,7 +30,7 @@ def launch() -> None:
 
     # (1) After splash → show PlayerEntry
     def _show_entry() -> None:
-        entry = PlayerEntry(root)
+        entry = PlayerEntry(root, on_complete=_launch_game)
 
         # When user starts from PlayerEntry → (2) show Countdown
         def _start_countdown() -> None:
@@ -58,9 +58,14 @@ def launch() -> None:
 
     # (3) Game start hook (no audio here, just placeholder)
     def _launch_game() -> None:
+		#call to game file. 
         print("Countdown finished — start the game here")
 
     # Splash first → then _show_entry
     SplashScreen(root, duration_ms=SPLASH_DURATION_MS, on_complete=_show_entry)
 
     root.mainloop()
+    
+if __name__ == "__main__":
+		launch()
+
