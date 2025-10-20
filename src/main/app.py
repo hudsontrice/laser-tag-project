@@ -60,6 +60,7 @@ def launch() -> None:
             background_ms=5000,
             step_ms=1000,
             on_complete=_launch_game,
+            audio_dir=ASSETS_DIR,
         )
             
     # (1) After splash → show PlayerEntry
