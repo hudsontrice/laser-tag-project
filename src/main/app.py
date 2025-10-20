@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import os
+import random
 import tkinter as tk
 from pathlib import Path
+from threading import Thread
 from typing import Optional
 
 from src.ui.countdown import Countdown
@@ -17,6 +19,37 @@ SPLASH_DURATION_MS = 3000
 WINDOW_GEOMETRY = os.getenv("PHOTON_WINDOW_GEOMETRY", "1024x720")
 ASSETS_DIR = Path(__file__).resolve().parents[1] / "assets"
 COUNTDOWN_IMAGES_DIR = str(ASSETS_DIR)
+
+
+def _play_random_track(base_dir: Path) -> None:
+    try:
+        from playsound import PlaysoundException, playsound  # type: ignore[import-not-found]
+    except ImportError:
+        return
+
+    try:
+        tracks = [
+            p
+            for p in base_dir.iterdir()
+            if p.suffix.lower() == ".mp3" and p.stem.lower().startswith("track")
+        ]
+    except OSError:
+        return
+
+    if not tracks:
+        return
+
+    track = random.choice(tracks)
+
+    def _runner() -> None:
+        try:
+            playsound(str(track), block=True)
+        except PlaysoundException:
+            pass
+        except Exception:
+            pass
+
+    Thread(target=_runner, daemon=True).start()
 
 
 def _center(root: tk.Tk, geometry: str) -> None:
@@ -62,7 +95,6 @@ def launch() -> None:
             background_ms=5000,
             step_ms=1000,
             on_complete=_launch_game,
-            audio_dir=ASSETS_DIR,
         )
             
     # (1) After splash → show PlayerEntry
@@ -87,7 +119,8 @@ def launch() -> None:
         if play_action_view is not None:
             play_action_view.destroy()
 
-        play_action_view = PlayAction(root, red_roster, green_roster)
+    play_action_view = PlayAction(root, red_roster, green_roster)
+    _play_random_track(ASSETS_DIR)
 
     # Splash first → then _show_entry
     SplashScreen(root, duration_ms=SPLASH_DURATION_MS, on_complete=_show_entry)

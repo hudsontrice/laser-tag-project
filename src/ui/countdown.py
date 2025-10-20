@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import random
 import re
 from pathlib import Path
-from threading import Thread
 from typing import Callable, Optional
 
 import tkinter as tk
 from PIL import Image, ImageTk
-from playsound import PlaysoundException, playsound
 
 
 class Countdown(tk.Frame):
@@ -22,19 +19,16 @@ class Countdown(tk.Frame):
         step_ms: int = 1000,
         on_complete: Optional[Callable[[], None]] = None,
         size: tuple[int, int] | None = None,
-        audio_dir: str | Path | None = None,
     ) -> None:
         super().__init__(master)
         self.pack(expand=True, fill="both")
 
         self.images_dir = Path(images_dir)
-        self.audio_dir = Path(audio_dir) if audio_dir else self.images_dir
         self.alert_ms = int(alert_ms)
         self.background_ms = int(background_ms)
         self.step_ms = int(step_ms)
         self.on_complete = on_complete
         self.size = size  # Optional resize target (width, height)
-        self._audio_thread: Optional[Thread] = None
 
         if not self.images_dir.exists():
             raise FileNotFoundError(f"Images directory not found: {self.images_dir}")
@@ -55,8 +49,6 @@ class Countdown(tk.Frame):
 
         # State for stepping through numbers
         self._num_index = 0
-
-        self._play_random_track()
 
         # Start sequence: alert → background → numbers
         self._show(self._alert_img)
@@ -89,30 +81,6 @@ class Countdown(tk.Frame):
 
         # Load and keep strong references to the PhotoImages
         return [(n, self._load_image(p)) for (n, p) in number_pairs]
-
-    def _play_random_track(self) -> None:
-        try:
-            tracks = [
-                p
-                for p in self.audio_dir.iterdir()
-                if p.suffix.lower() == ".mp3" and p.stem.lower().startswith("track")
-            ]
-        except OSError:
-            return
-
-        if not tracks:
-            return
-
-        track = random.choice(tracks)
-
-        def _runner() -> None:
-            try:
-                playsound(str(track), block=True)
-            except PlaysoundException:
-                pass
-
-        self._audio_thread = Thread(target=_runner, daemon=True)
-        self._audio_thread.start()
 
     # ------------------------
     # Sequencing

@@ -275,6 +275,12 @@ class PlayerEntry(tk.Frame):
         self._is_cleaned = True
 
         try:
+            self.master.unbind_all("<F5>")
+            self.master.unbind_all("<F12>")
+        except Exception:
+            pass
+
+        try:
             self.sender.close()
         finally:
             if self.winfo_exists():
