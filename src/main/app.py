@@ -29,13 +29,8 @@ def launch() -> None:
 	_center(root, WINDOW_GEOMETRY)
 
 	def _show_entry() -> None:
-		entry = PlayerEntry(root, on_complete= _show_game)
+		entry = PlayerEntry(root)
 		root.protocol("WM_DELETE_WINDOW", entry.close_app)
-
-	def _show_game() -> None:
-		print("Player entry complete, launching game UI...")
-		#game = GameAction(root) # this is where the game object will go!!!
-		pass  # Placeholder for future game UI launch	
 
 	splash = SplashScreen(root, duration_ms=SPLASH_DURATION_MS, on_complete=_show_entry)
 
