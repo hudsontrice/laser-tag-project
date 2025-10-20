@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import os
 import tkinter as tk
+from pathlib import Path
 
 from src.ui.player_entry import PlayerEntry
 from src.ui.splash import SplashScreen
 from src.ui.countdown import Countdown   # ← ADD
 
+
 SPLASH_DURATION_MS = 3000
 WINDOW_GEOMETRY = os.getenv("PHOTON_WINDOW_GEOMETRY", "1024x720")
-COUNTDOWN_IMAGES_DIR = r"laser-tag-project\reference files\countdown_images"  # ← ADD
+assets_dir = Path(__file__).resolve().parent.parent / "assets"
+COUNTDOWN_IMAGES_DIR = assets_dir  # ← ADD
 
 
 def _center(root: tk.Tk, geometry: str) -> None:
@@ -27,13 +30,24 @@ def launch() -> None:
     root = tk.Tk()
     root.title("Photon Entry Terminal")
     _center(root, WINDOW_GEOMETRY)
-
+    
+    def _start_countdown() -> None:
+            Countdown(
+                root,
+                images_dir=COUNTDOWN_IMAGES_DIR,
+                alert_ms=5000,
+                background_ms=5000,
+                step_ms=1000,
+                on_complete=_launch_game,   # (3) after countdown → game start hook
+                # size=(1024, 720),          # optional resize
+            )
+            
     # (1) After splash → show PlayerEntry
     def _show_entry() -> None:
-        entry = PlayerEntry(root, on_complete=_launch_game)
+        entry = PlayerEntry(root, on_complete=_start_countdown)
 
         # When user starts from PlayerEntry → (2) show Countdown
-        def _start_countdown() -> None:
+        '''def _start_countdown() -> None:
             try:
                 entry.destroy()  # clear PlayerEntry UI
             except Exception:
@@ -46,7 +60,7 @@ def launch() -> None:
                 step_ms=1000,
                 on_complete=_launch_game,   # (3) after countdown → game start hook
                 # size=(1024, 720),          # optional resize
-            )
+            )'''
 
         # Preferred: PlayerEntry exposes an on_start callback
         if hasattr(entry, "on_start"):

@@ -36,6 +36,7 @@ class PlayerEntry(tk.Frame):
         self.equipment_var = tk.StringVar()
         self.target_ip_var = tk.StringVar(value=self.sender.ip)
         self.target_port_var = tk.StringVar(value=str(self.sender.port))
+        self.on_complete = on_complete
 
         self.team_slots: Dict[str, List[Dict[str, tk.StringVar]]] = {
             "red": self._make_empty_slots(),
@@ -296,7 +297,7 @@ class PlayerEntry(tk.Frame):
 
     def close_app(self) -> None:
         self.sender.close()
-        self.master.destroy()
+        self.destroy()
         self.on_complete()
 
 

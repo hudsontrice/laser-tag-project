@@ -119,9 +119,12 @@ if __name__ == "__main__":
         print("Countdown finished.")
         root.destroy()
 
+    assets_dir = Path(__file__).resolve().parent.parent / "assets"
+    print(f"Using assets from: {assets_dir}")
+
     Countdown(
         root,
-        images_dir=r"laser-tag-project\reference files\countdown_images",
+        images_dir=assets_dir,
         alert_ms=5000,
         background_ms=5000,
         step_ms=1000,
