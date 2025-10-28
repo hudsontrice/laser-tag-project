@@ -31,12 +31,6 @@ You can override the Python interpreter with `PYTHON=/path/to/python bash script
 ```bash
 python3 -m src.main.app
 ```
-
-> **Note:** After pressing **F5**, some VM instances may require you to **manually close the Player Entry screen** (using the “X” in the corner) before the clock display appears.  
-> This behavior only occurs on certain systems and is still under investigation.
-
----
-
 ## Repository Contents
 
 ```
