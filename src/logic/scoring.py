@@ -32,6 +32,9 @@ class Logic:
         # Track base hitters for icon display
         self.base_hitters = set()
         
+        # Game state flag
+        self.game_active = False
+        
         # UDP connections
         self.udp_sender = UDPSender()
         self.udp_receiver = UDPServer()
@@ -129,10 +132,12 @@ class Logic:
         self.green_names = green_names
         
         print("Scoring main loop started. Listening for UDP events...")
-        while True:
+        while self.game_active:
             message, addr = self.udp_receiver.listener()  # Unpack tuple properly
             if message:
                 self.process_data(message, red_equipment_ids, green_equipment_ids)
+        
+        print("Scoring main loop stopped. Game ended.")
     
     # DATA HANDLING METHODS
     def award_points(self, equipment_id: int, points: int) -> None:
@@ -154,12 +159,14 @@ class Logic:
         print(f"Player {equipment_id} hit {base_name} base! +100 points")
         
     def start_game(self) -> None:
-        """Broadcast game start code 202."""
+        """Broadcast game start code 202 and activate game loop."""
+        self.game_active = True
         self.udp_sender.send_message("202")
         print("Game started! Broadcast code 202")
         
     def end_game(self) -> None:
-        """Broadcast game end code 221 three times."""
+        """Broadcast game end code 221 three times and stop game loop."""
+        self.game_active = False
         for _ in range(3):
             self.udp_sender.send_message("221")
         print("Game ended! Broadcast code 221 (3x)")
