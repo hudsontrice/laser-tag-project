@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 """App entry point and simple page flow controller.
-
-Flow: Splash → PlayerEntry → Countdown → PlayAction.
-Each transition has a single, clear comment marking the page change.
+Flow: Splash -> PlayerEntry -> Countdown -> PlayAction.
 """
 
 import os
@@ -17,6 +15,9 @@ from src.ui.countdown import Countdown
 from src.ui.player_entry import PlayerEntry
 from src.ui.play_action import PlayAction
 from src.ui.splash import SplashScreen
+from src.logic.scoring import Logic
+from src.net.udp_receiver import UDPServer
+from src.net.udp_sender import UDPSender
 
 
 SPLASH_DURATION_MS = 3000
@@ -26,7 +27,7 @@ COUNTDOWN_IMAGES_DIR = str(ASSETS_DIR)
 
 
 def _play_random_track(base_dir: Path) -> None:
-    """Play a random track from the fixed set Track01.mp3 .. Track08.mp3 (best-effort).
+    """Play a random track from tracks 1 thro 8, [Track01.mp3 ... Track08.mp3] (best effort).
 
     Falls back silently if the module or chosen file is missing.
     """
@@ -38,7 +39,7 @@ def _play_random_track(base_dir: Path) -> None:
     track_number = random.randint(1, 8)
     filename = f"Track{track_number:02}.mp3"
     track_path = base_dir / filename
-    if not track_path.exists():  # If assets incomplete, just skip.
+    if not track_path.exists():  # If assets incomplete, just skip, don't break.
         return
 
     def _runner() -> None:
@@ -73,7 +74,11 @@ class App:
         self.play_action_view: Optional[PlayAction] = None
         self.red_roster: list[str] = []
         self.green_roster: list[str] = []
+        self.red_equipment_ids: list[int] = []
+        self.green_equipment_ids: list[int] = []
 
+        self.scoring = Logic() # Create upd send/rec and start score tracking
+        
         self.root.title("Photon Entry Terminal")
         _center(self.root, WINDOW_GEOMETRY)
         self.root.rowconfigure(0, weight=1)
@@ -94,7 +99,7 @@ class App:
     def start_countdown(self) -> None:
         """PlayerEntry -> Countdown, capturing rosters before moving on."""
         if self.entry is not None:
-            self.red_roster, self.green_roster = self.entry.pop_rosters()
+            self.red_roster, self.green_roster, self.red_equipment_ids, self.green_equipment_ids = self.entry.pop_rosters()
             self.entry.cleanup()
             self.entry = None
 
@@ -111,7 +116,7 @@ class App:
         )
 
     def launch_game(self) -> None:
-        """Countdown -> PlayAction and kick off background music (best-effort)."""
+        """Countdown -> PlayAction and kick off background music (best effort)."""
         if self.countdown_view is not None:
             self.countdown_view.destroy()
             self.countdown_view = None
@@ -119,9 +124,17 @@ class App:
         if self.play_action_view is not None:
             self.play_action_view.destroy()
 
+        self.scoring.start_game()
+        
         self.play_action_view = PlayAction(self.root, self.red_roster, self.green_roster)
         _play_random_track(ASSETS_DIR)
-
+        
+        # Start scoring UDP listener in background thread
+        def run_scoring():
+            self.scoring.main_loop(self.red_equipment_ids, self.green_equipment_ids)
+        
+        Thread(target=run_scoring, daemon=True).start()
+            
 
 def launch() -> None:
     """Create the Tk root and run the app controller."""

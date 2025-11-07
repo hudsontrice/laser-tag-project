@@ -139,7 +139,6 @@ if __name__ == "__main__":
         background_ms=5000,
         step_ms=1000,
         on_complete=done,
-        audio_dir=assets_dir,
         # size=(1024, 720),  # uncomment to force-resize images
     )
 
