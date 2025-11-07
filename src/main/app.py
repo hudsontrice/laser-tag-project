@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+"""App entry point and simple page flow controller.
+Flow: Splash -> PlayerEntry -> Countdown -> PlayAction.
+"""
+
 import os
 import random
 import tkinter as tk
@@ -11,6 +15,9 @@ from src.ui.countdown import Countdown
 from src.ui.player_entry import PlayerEntry
 from src.ui.play_action import PlayAction
 from src.ui.splash import SplashScreen
+from src.logic.scoring import Logic
+from src.net.udp_receiver import UDPServer
+from src.net.udp_sender import UDPSender
 
 
 SPLASH_DURATION_MS = 3000
@@ -20,28 +27,24 @@ COUNTDOWN_IMAGES_DIR = str(ASSETS_DIR)
 
 
 def _play_random_track(base_dir: Path) -> None:
+    """Play a random track from tracks 1 thro 8, [Track01.mp3 ... Track08.mp3] (best effort).
+
+    Falls back silently if the module or chosen file is missing.
+    """
     try:
         from playsound import PlaysoundException, playsound  # type: ignore[import-not-found]
     except ImportError:
         return
 
-    try:
-        tracks = [
-            p
-            for p in base_dir.iterdir()
-            if p.suffix.lower() == ".mp3" and p.stem.lower().startswith("track")
-        ]
-    except OSError:
+    track_number = random.randint(1, 8)
+    filename = f"Track{track_number:02}.mp3"
+    track_path = base_dir / filename
+    if not track_path.exists():  # If assets incomplete, just skip, don't break.
         return
-
-    if not tracks:
-        return
-
-    track = random.choice(tracks)
 
     def _runner() -> None:
         try:
-            playsound(str(track), block=True)
+            playsound(str(track_path), block=True)
         except PlaysoundException:
             pass
         except Exception:
@@ -51,7 +54,7 @@ def _play_random_track(base_dir: Path) -> None:
 
 
 def _center(root: tk.Tk, geometry: str) -> None:
-    """Apply the given geometry string and centre the window. -HT"""
+    """Apply the given geometry string and center the window on screen."""
     root.geometry(geometry)
     root.update_idletasks()
     width = root.winfo_width()
@@ -61,70 +64,92 @@ def _center(root: tk.Tk, geometry: str) -> None:
     root.geometry(f"{width}x{height}+{x}+{y}")
 
 
-def launch() -> None:
-    root = tk.Tk()
-    root.title("Photon Entry Terminal")
-    _center(root, WINDOW_GEOMETRY)
+class App:
+    """Controller that manages page transitions."""
 
-    root.rowconfigure(0, weight=1)
-    root.columnconfigure(0, weight=1)
+    def __init__(self, root: tk.Tk) -> None:
+        self.root = root
+        self.entry: Optional[PlayerEntry] = None
+        self.countdown_view: Optional[Countdown] = None
+        self.play_action_view: Optional[PlayAction] = None
+        self.red_roster: list[str] = []
+        self.green_roster: list[str] = []
+        self.red_equipment_ids: list[int] = []
+        self.green_equipment_ids: list[int] = []
 
-    entry: Optional[PlayerEntry] = None
-    countdown_view: Optional[Countdown] = None
-    play_action_view: Optional[PlayAction] = None
-    red_roster: list[str] = []
-    green_roster: list[str] = []
-    
-    def _start_countdown() -> None:
-        nonlocal entry, countdown_view, red_roster, green_roster
+        self.scoring = Logic() # Create upd send/rec and start score tracking
+        
+        self.root.title("Photon Entry Terminal")
+        _center(self.root, WINDOW_GEOMETRY)
+        self.root.rowconfigure(0, weight=1)
+        self.root.columnconfigure(0, weight=1)
 
-        if entry is not None:
-            red_roster, green_roster = entry.pop_rosters()
-            entry.cleanup()
-            entry = None
+        # Splash -> PlayerEntry
+        SplashScreen(self.root, duration_ms=SPLASH_DURATION_MS, on_complete=self.show_entry)
 
-        if countdown_view is not None:
-            countdown_view.destroy()
+    def show_entry(self) -> None:
+        """Show the PlayerEntry page."""
+        if self.countdown_view is not None:
+            self.countdown_view.destroy()
+            self.countdown_view = None
 
-        countdown_view = Countdown(
-            root,
+        self.entry = PlayerEntry(self.root, on_complete=self.start_countdown)
+        self.root.protocol("WM_DELETE_WINDOW", self.entry.close_app)
+
+    def start_countdown(self) -> None:
+        """PlayerEntry -> Countdown, capturing rosters before moving on."""
+        if self.entry is not None:
+            self.red_roster, self.green_roster, self.red_equipment_ids, self.green_equipment_ids = self.entry.pop_rosters()
+            self.entry.cleanup()
+            self.entry = None
+
+        if self.countdown_view is not None:
+            self.countdown_view.destroy()
+
+        self.countdown_view = Countdown(
+            self.root,
             images_dir=COUNTDOWN_IMAGES_DIR,
             alert_ms=5000,
             background_ms=5000,
             step_ms=1000,
-            on_complete=_launch_game,
+            on_complete=self.launch_game,
         )
-            
-    # (1) After splash → show PlayerEntry
-    def _show_entry() -> None:
-        nonlocal entry, countdown_view
 
-        if countdown_view is not None:
-            countdown_view.destroy()
-            countdown_view = None
+    def launch_game(self) -> None:
+        """Countdown -> PlayAction and kick off background music (best effort)."""
+        if self.countdown_view is not None:
+            self.countdown_view.destroy()
+            self.countdown_view = None
 
-        entry = PlayerEntry(root, on_complete=_start_countdown)
-        root.protocol("WM_DELETE_WINDOW", entry.close_app)
+        if self.play_action_view is not None:
+            self.play_action_view.destroy()
 
-    # (3) Game start hook (no audio here, just placeholder)
-    def _launch_game() -> None:
-        nonlocal countdown_view, play_action_view
-
-        if countdown_view is not None:
-            countdown_view.destroy()
-            countdown_view = None
-
-        if play_action_view is not None:
-            play_action_view.destroy()
-
-        play_action_view = PlayAction(root, red_roster, green_roster)
+        self.scoring.start_game()
+        
+        self.play_action_view = PlayAction(self.root, self.red_roster, self.green_roster, self.scoring)
+        
+        # Connect the UI to the scoring engine for live updates
+        self.scoring.play_action_screen = self.play_action_view
+        
         _play_random_track(ASSETS_DIR)
+        
+        # Start scoring UDP listener in background thread
+        def run_scoring():
+            self.scoring.main_loop(
+                self.red_equipment_ids, self.green_equipment_ids,
+                self.red_roster, self.green_roster
+            )
+        
+        Thread(target=run_scoring, daemon=True).start()
+            
 
-    # Splash first → then _show_entry
-    SplashScreen(root, duration_ms=SPLASH_DURATION_MS, on_complete=_show_entry)
-
+def launch() -> None:
+    """Create the Tk root and run the app controller."""
+    root = tk.Tk()
+    App(root)
     root.mainloop()
-    
+
+
 if __name__ == "__main__":
     launch()
 

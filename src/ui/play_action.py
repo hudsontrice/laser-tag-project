@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import tkinter as tk
-from tkinter import font
+from tkinter import font, scrolledtext
 from typing import Dict, List, Optional, Tuple
 
 # Define team colors from the project for consistency
@@ -16,7 +16,7 @@ TEAM_COLORS = {
 class PlayAction(tk.Frame):
     TEAM_SIZE = 20
 
-    def __init__(self, master: tk.Misc, red_team_players: list, green_team_players: list):
+    def __init__(self, master: tk.Misc, red_team_players: list, green_team_players: list, scoring_engine=None):
         super().__init__(master, bg="#040404")
         self.grid(row=0, column=0, sticky="nsew")
         master.rowconfigure(0, weight=1)
@@ -25,6 +25,7 @@ class PlayAction(tk.Frame):
         # store player lists for use
         self.red_players = red_team_players
         self.green_players = green_team_players
+        self.scoring_engine = scoring_engine
 
         # define fonts
         self.title_font = font.Font(family="Segoe UI", size=24, weight="bold")
@@ -82,10 +83,25 @@ class PlayAction(tk.Frame):
         )
         action_frame.pack(fill="both", expand=True, side="bottom", padx=20, pady=(10,20))
 
-        # placeholder text for the action log
-        tk.Label(
-            action_frame, text="--- Game events will appear here ---", bg="#111", fg="#999", font=self.action_font
-        ).pack(anchor="nw")
+        # Create scrolled text widget for action log
+        self.action_log = scrolledtext.ScrolledText(
+            action_frame, 
+            bg="#1a1a1a", 
+            fg="#00ff00",  # Green terminal-style text
+            font=self.action_font,
+            height=8,
+            wrap=tk.WORD,
+            state=tk.DISABLED  # Read-only
+        )
+        self.action_log.pack(fill="both", expand=True)
+        
+        # Add initial message
+        self.add_action("Game started! Waiting for first tag...")
+        
+        # Configure tag colors for different event types
+        self.action_log.tag_config("normal", foreground="#00ff00")
+        self.action_log.tag_config("friendly_fire", foreground="#ff6600")
+        self.action_log.tag_config("base_hit", foreground="#ffff00", font=("Segoe UI", 12, "bold"))
 
     def _create_team_frame(self, parent: tk.Frame, title: str, bg_color: str, players: List[str]) -> tk.Frame:
         """Creates a team frame and populates it with players."""
@@ -128,6 +144,32 @@ class PlayAction(tk.Frame):
             self.timer.after(1000, self.updateTimer)
         else:
             self.timer.config(text=f"GAME OVER")
+            # Broadcast game end code 221 three times
+            if self.scoring_engine:
+                self.scoring_engine.end_game()
+                self.add_action("GAME OVER! Final scores calculated.", "base_hit")
+    
+    def add_action(self, message: str, tag: str = "normal") -> None:
+        """Add a message to the action log with optional color tag."""
+        self.action_log.config(state=tk.NORMAL)  # Enable editing
+        self.action_log.insert(tk.END, message + "\n", tag)
+        self.action_log.see(tk.END)  # Auto-scroll to bottom
+        self.action_log.config(state=tk.DISABLED)  # Disable editing
+    
+    def log_tag_event(self, attacker_name: str, victim_name: str) -> None:
+        """Log a normal tag event."""
+        message = f"{attacker_name} tagged {victim_name} (+10 points)"
+        self.add_action(message, "normal")
+    
+    def log_friendly_fire(self, attacker_name: str, victim_name: str) -> None:
+        """Log a friendly fire event."""
+        message = f"FRIENDLY FIRE! {attacker_name} hit teammate {victim_name} (-10 points each)"
+        self.add_action(message, "friendly_fire")
+    
+    def log_base_hit(self, player_name: str, base_name: str) -> None:
+        """Log a base hit event."""
+        message = f"** {player_name} DESTROYED {base_name.upper()} BASE! (+100 points) **"
+        self.add_action(message, "base_hit")
 
 __all__ = ["PlayAction"]
 
