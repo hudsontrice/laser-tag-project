@@ -35,8 +35,12 @@ class PlayAction(tk.Frame):
 
         # build the main UI Layout
         self._build_layout()
+        self.updateTimer()
 
     def _build_layout(self) -> None:
+
+        
+
         # top frame (scores and timer)
         top_frame = tk.Frame(self, bg="#040404", pady=10)
         top_frame.pack(fill="x", side="top")
@@ -45,8 +49,13 @@ class PlayAction(tk.Frame):
         tk.Label(top_frame, text="RED TEAM", fg="#f55", bg="#040404", font=self.title_font).pack(side="left", padx=50)
         tk.Label(top_frame, text="0", fg="white", bg="#040404", font=self.score_font).pack(side="left")
 
+        ##time left variable for the set at 360 for 6 minutes
+        self.timeleft = 360
+
         # timer (placeholder)
-        tk.Label(top_frame, text="6:00", fg="#ff0", bg="#040404", font=self.score_font).pack(side="left", fill="x", expand=True)
+        ##Timer Layout
+        self.timer = tk.Label(top_frame, text="6:00", fg="#ff0", bg="#040404", font=self.score_font)
+        self.timer.pack(side="left", fill="x", expand=True)   
 
         # green team score (placeholder)
         tk.Label(top_frame, text="0", fg="white", bg="#040404", font=self.score_font).pack(side="right", padx=10)
@@ -107,5 +116,18 @@ class PlayAction(tk.Frame):
             ).pack(side="right", padx=6)
 
         return frame
-            
+
+    #timer function
+    def updateTimer(self):
+        if self.timeleft > 0:
+            print("timer running")
+            mins = self.timeleft // 60
+            seconds = self.timeleft % 60
+            self.timer.config(text=f"{mins:02d}:{seconds:02d}")
+            self.timeleft -=1    
+            self.timer.after(1000, self.updateTimer)
+        else:
+            self.timer.config(text=f"GAME OVER")
+
 __all__ = ["PlayAction"]
+
