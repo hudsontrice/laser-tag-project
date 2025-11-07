@@ -63,8 +63,8 @@ class Logic:
             print(f"FRIENDLY FIRE! Player {equipment_id_1} hit teammate {equipment_id_2}")
             self.deduct_points(equipment_id_1, 10)
             self.deduct_points(equipment_id_2, 10)
-            self.udp_sender.send_message(f"{equipment_id_1}")
-            self.udp_sender.send_message(f"{equipment_id_2}") #send back both equipment ids
+            # Send both equipment IDs in a single message separated by colon
+            self.udp_sender.send_message(f"{equipment_id_1}:{equipment_id_2}")
         
         else:
             # Opposing teams - valid hit, attacker gets points
