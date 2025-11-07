@@ -16,7 +16,7 @@ TEAM_COLORS = {
 class PlayAction(tk.Frame):
     TEAM_SIZE = 20
 
-    def __init__(self, master: tk.Misc, red_team_players: list, green_team_players: list):
+    def __init__(self, master: tk.Misc, red_team_players: list, green_team_players: list, scoring_engine=None):
         super().__init__(master, bg="#040404")
         self.grid(row=0, column=0, sticky="nsew")
         master.rowconfigure(0, weight=1)
@@ -25,6 +25,7 @@ class PlayAction(tk.Frame):
         # store player lists for use
         self.red_players = red_team_players
         self.green_players = green_team_players
+        self.scoring_engine = scoring_engine
 
         # define fonts
         self.title_font = font.Font(family="Segoe UI", size=24, weight="bold")
@@ -128,6 +129,9 @@ class PlayAction(tk.Frame):
             self.timer.after(1000, self.updateTimer)
         else:
             self.timer.config(text=f"GAME OVER")
+            # Broadcast game end code 221 three times
+            if self.scoring_engine:
+                self.scoring_engine.end_game()
 
 __all__ = ["PlayAction"]
 

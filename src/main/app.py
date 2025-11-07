@@ -126,7 +126,7 @@ class App:
 
         self.scoring.start_game()
         
-        self.play_action_view = PlayAction(self.root, self.red_roster, self.green_roster)
+        self.play_action_view = PlayAction(self.root, self.red_roster, self.green_roster, self.scoring)
         _play_random_track(ASSETS_DIR)
         
         # Start scoring UDP listener in background thread
