@@ -12,8 +12,12 @@ Individual scores will be displayed from highest to lowest on each team
 High team score will be flashing during play
 '''
 
+from typing import Optional, TYPE_CHECKING
 from src.net.udp_sender import UDPSender
 from src.net.udp_receiver import UDPServer
+
+if TYPE_CHECKING:
+    from src.ui.play_action import PlayAction
 
 
 class Logic:
@@ -33,7 +37,7 @@ class Logic:
         self.udp_receiver = UDPServer()
         
         # UI reference (set by app.py later)
-        self.play_action_screen = None
+        self.play_action_screen: Optional['PlayAction'] = None
 
     def process_data(self, data: str, red_roster: list[int], green_roster: list[int]) -> None:
         #transform data into usable
@@ -49,11 +53,19 @@ class Logic:
             if self.is_red_team(equipment_id_1): 
                 self.award_base_points(equipment_id_1, 43)
                 self.udp_sender.send_message(f"{equipment_id_1}")  # Acknowledge base hit
+                # Log to UI
+                if self.play_action_screen:
+                    player_name = self.get_player_name(equipment_id_1)
+                    self.play_action_screen.log_base_hit(player_name, "green")
             return  # Don't process as regular tag
         elif equipment_id_2 == 53: #red base hit
             if self.is_green_team(equipment_id_1): 
                 self.award_base_points(equipment_id_1, 53)
                 self.udp_sender.send_message(f"{equipment_id_1}")  # Acknowledge base hit
+                # Log to UI
+                if self.play_action_screen:
+                    player_name = self.get_player_name(equipment_id_1)
+                    self.play_action_screen.log_base_hit(player_name, "red")
             return  # Don't process as regular tag 
 
         # individual tag logic - check if same team (both odd or both even)
@@ -65,11 +77,21 @@ class Logic:
             self.deduct_points(equipment_id_2, 10)
             # Send both equipment IDs in a single message separated by colon
             self.udp_sender.send_message(f"{equipment_id_1}:{equipment_id_2}")
+            # Log to UI
+            if self.play_action_screen:
+                attacker_name = self.get_player_name(equipment_id_1)
+                victim_name = self.get_player_name(equipment_id_2)
+                self.play_action_screen.log_friendly_fire(attacker_name, victim_name)
         
         else:
             # Opposing teams - valid hit, attacker gets points
             self.award_points(equipment_id_1, 10)
             self.udp_sender.send_message(f"{equipment_id_2}") #send back victim equipment id
+            # Log to UI
+            if self.play_action_screen:
+                attacker_name = self.get_player_name(equipment_id_1)
+                victim_name = self.get_player_name(equipment_id_2)
+                self.play_action_screen.log_tag_event(attacker_name, victim_name)
         
         
         
@@ -82,15 +104,35 @@ class Logic:
         """Green team = even equipment IDs."""
         return equipment_id % 2 == 0
     
+    def get_player_name(self, equipment_id: int) -> str:
+        """Get player name from equipment ID using roster lookup."""
+        # Check red team first
+        if equipment_id in self.red_equipment_ids:
+            index = self.red_equipment_ids.index(equipment_id)
+            return self.red_names[index]
+        # Check green team
+        elif equipment_id in self.green_equipment_ids:
+            index = self.green_equipment_ids.index(equipment_id)
+            return self.green_names[index]
+        # Fallback if not found
+        return f"Player {equipment_id}"
+    
 
 
-    def main_loop(self, red_roster: list[int], green_roster: list[int]) -> None:
+    def main_loop(self, red_equipment_ids: list[int], green_equipment_ids: list[int], 
+                  red_names: list[str], green_names: list[str]) -> None:
         # Main game logic loop to handle scoring and UDP communication
+        # Store rosters for name lookups
+        self.red_equipment_ids = red_equipment_ids
+        self.green_equipment_ids = green_equipment_ids
+        self.red_names = red_names
+        self.green_names = green_names
+        
         print("Scoring main loop started. Listening for UDP events...")
         while True:
             message, addr = self.udp_receiver.listener()  # Unpack tuple properly
             if message:
-                self.process_data(message, red_roster, green_roster)
+                self.process_data(message, red_equipment_ids, green_equipment_ids)
     
     # DATA HANDLING METHODS
     def award_points(self, equipment_id: int, points: int) -> None:

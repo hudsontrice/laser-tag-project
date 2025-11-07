@@ -127,11 +127,18 @@ class App:
         self.scoring.start_game()
         
         self.play_action_view = PlayAction(self.root, self.red_roster, self.green_roster, self.scoring)
+        
+        # Connect the UI to the scoring engine for live updates
+        self.scoring.play_action_screen = self.play_action_view
+        
         _play_random_track(ASSETS_DIR)
         
         # Start scoring UDP listener in background thread
         def run_scoring():
-            self.scoring.main_loop(self.red_equipment_ids, self.green_equipment_ids)
+            self.scoring.main_loop(
+                self.red_equipment_ids, self.green_equipment_ids,
+                self.red_roster, self.green_roster
+            )
         
         Thread(target=run_scoring, daemon=True).start()
             
