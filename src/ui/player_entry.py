@@ -123,6 +123,17 @@ class PlayerEntry(tk.Frame):
             side="left", expand=True, fill="both"
         )
 
+        # Keyboard shortcuts hint
+        shortcuts_hint = tk.Frame(self, bg="#040404")
+        shortcuts_hint.pack(fill="x", padx=20, pady=(0, 10))
+        tk.Label(
+            shortcuts_hint,
+            text="⌨ Shortcuts: F5 = Start Game  |  F12 = Clear Roster",
+            bg="#040404",
+            fg="#888888",
+            font=("Segoe UI", 9, "italic")
+        ).pack(anchor="center")
+
         self.player_entry.bind("<FocusOut>", self._autofill_codename)
         self.player_entry.bind("<Return>", self._autofill_codename)
         self.equipment_entry.bind("<Return>", lambda _event: self.save_player())
