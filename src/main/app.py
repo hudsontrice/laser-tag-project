@@ -16,6 +16,7 @@ from src.ui.player_entry import PlayerEntry
 from src.ui.play_action import PlayAction
 from src.ui.splash import SplashScreen
 from src.logic.scoring import Logic
+from src.logic.game_state import GameState
 from src.net.udp_receiver import UDPServer
 from src.net.udp_sender import UDPSender
 
@@ -77,8 +78,10 @@ class App:
         self.red_equipment_ids: list[int] = []
         self.green_equipment_ids: list[int] = []
 
-        self.scoring = Logic() # Create upd send/rec and start score tracking
-        
+        # Central GameState (scoring + UI bridge)
+        self.game_state = GameState()
+        self.scoring = Logic(self.game_state) # Create udp send/rec and start score tracking
+
         self.root.title("Photon Entry Terminal")
         _center(self.root, WINDOW_GEOMETRY)
         self.root.rowconfigure(0, weight=1)
@@ -124,11 +127,27 @@ class App:
         if self.play_action_view is not None:
             self.play_action_view.destroy()
 
+        # Register rosters with the GameState so UI updates map correctly
+        try:
+            self.game_state.register_rosters(self.red_roster, self.green_roster, self.red_equipment_ids, self.green_equipment_ids)
+        except Exception:
+            pass
+
         self.scoring.start_game()
-        
+
         self.play_action_view = PlayAction(self.root, self.red_roster, self.green_roster, self.scoring)
-        
-        # Connect the UI to the scoring engine for live updates
+
+        # Wire GameState -> PlayAction UI callbacks
+        try:
+            self.game_state.bind_ui(
+                on_player_score=self.play_action_view.update_player_score,
+                on_team_scores=self.play_action_view.update_team_scores,
+                on_base_hit=self.play_action_view.on_base_hit,
+            )
+        except Exception:
+            pass
+
+        # Keep legacy reference for Logic fallback logging
         self.scoring.play_action_screen = self.play_action_view
         
         _play_random_track(ASSETS_DIR)
