@@ -147,6 +147,31 @@ class App:
         except Exception:
             pass
 
+        # Push initial scores into the UI so labels show 0 (or any pre-existing values)
+        try:
+            # Team totals
+            self.play_action_view.update_team_scores(
+                self.game_state.team_scores.get("red", 0),
+                self.game_state.team_scores.get("green", 0),
+                None,
+            )
+
+            # Individual player scores: iterate equipment id lists in the same order used to build the UI
+            for eid in self.red_equipment_ids:
+                pref = self.game_state.players_by_eid.get(eid)
+                if pref is not None:
+                    score = self.game_state.player_scores.get(eid, 0)
+                    self.play_action_view.update_player_score(pref, score)
+
+            for eid in self.green_equipment_ids:
+                pref = self.game_state.players_by_eid.get(eid)
+                if pref is not None:
+                    score = self.game_state.player_scores.get(eid, 0)
+                    self.play_action_view.update_player_score(pref, score)
+        except Exception:
+            # Best-effort; if UI not ready ignore
+            pass
+
         # Keep legacy reference for Logic fallback logging
         self.scoring.play_action_screen = self.play_action_view
         

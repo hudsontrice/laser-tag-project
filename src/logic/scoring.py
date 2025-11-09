@@ -53,8 +53,16 @@ class Logic:
             print(f"Invalid UDP message format: {data}")
             return
         # equipment 1 tags equipment 2
+        # Debug: report team membership for tracing friendly-fire vs valid hit
+        try:
+            attacker_is_red = self.is_red_team(equipment_id_1)
+            victim_is_red = self.is_red_team(equipment_id_2)
+            attacker_is_green = self.is_green_team(equipment_id_1)
+            victim_is_green = self.is_green_team(equipment_id_2)
+        except Exception:
+            attacker_is_red = attacker_is_green = victim_is_red = victim_is_green = False
 
-        #base hit logig
+        #base hit logging
         if equipment_id_2 == 43 : #green base hit
             if self.is_red_team(equipment_id_1):
                 # If GameState is present, delegate base scoring + UI callback
@@ -84,6 +92,8 @@ class Logic:
              (self.is_green_team(equipment_id_1) and self.is_green_team(equipment_id_2)):
             # Friendly fire - both lose points
             print(f"FRIENDLY FIRE! Player {equipment_id_1} hit teammate {equipment_id_2}")
+            # Extra debug: print team membership
+            print(f"Teams -> attacker red:{attacker_is_red} green:{attacker_is_green}; victim red:{victim_is_red} green:{victim_is_green}")
             if self.game_state:
                 self.game_state.friendly_fire_pair(equipment_id_1, equipment_id_2, penalty_each=10)
             else:
@@ -114,12 +124,18 @@ class Logic:
         
     def is_red_team(self, equipment_id: int) -> bool:
         """Red team = odd equipment IDs."""
-        return equipment_id % 2 == 1
+        try:
+            return equipment_id in self.red_equipment_ids
+        except AttributeError:
+            return equipment_id % 2 == 1  # fallback
             
 
     def is_green_team(self, equipment_id: int) -> bool:
         """Green team = even equipment IDs."""
-        return equipment_id % 2 == 0
+        try:
+            return equipment_id in self.green_equipment_ids
+        except AttributeError:
+            return equipment_id % 2 == 0 #fallback
     
     def get_player_name(self, equipment_id: int) -> str:
         """Get player name from equipment ID using roster lookup."""
