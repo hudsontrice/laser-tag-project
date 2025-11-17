@@ -118,7 +118,7 @@ class App:
             background_ms=5000,
             step_ms=1000,
             on_complete=self.launch_game,
-            audio_trigger_value=14,
+            audio_trigger_value=12,
             on_audio_trigger=self._trigger_game_audio,
         )
 
