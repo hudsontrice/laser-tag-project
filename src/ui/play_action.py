@@ -304,16 +304,9 @@ class PlayAction(tk.Frame):
         except Exception:
             pass
 
-        # highlight the player's row for a few seconds
+        # Persist the base icon next to the player's name
         try:
             self.add_base_icon(pref.team, pref.index)
-            rows = self.player_rows.get(pref.team, [])
-            if 0 <= pref.index < len(rows):
-                row = rows[pref.index]
-                orig_bg = row.cget("bg")
-                row.config(bg="#444400")
-                # restore after 3s
-                self.after(3000, lambda: row.config(bg=orig_bg))
         except Exception:
             pass
 

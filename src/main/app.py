@@ -87,6 +87,7 @@ class App:
         _center(self.root, WINDOW_GEOMETRY)
         self.root.rowconfigure(0, weight=1)
         self.root.columnconfigure(0, weight=1)
+        self.root.protocol("WM_DELETE_WINDOW", self.force_quit)
 
         # Splash -> PlayerEntry
         SplashScreen(self.root, duration_ms=SPLASH_DURATION_MS, on_complete=self.show_entry)
@@ -98,7 +99,6 @@ class App:
             self.countdown_view = None
 
         self.entry = PlayerEntry(self.root, on_complete=self.start_countdown)
-        self.root.protocol("WM_DELETE_WINDOW", self.entry.close_app)
 
     def start_countdown(self) -> None:
         """PlayerEntry -> Countdown, capturing rosters before moving on."""
@@ -216,6 +216,36 @@ class App:
         self.green_equipment_ids = []
 
         self.show_entry()
+
+    def force_quit(self, _event: Optional[tk.Event] = None) -> None:
+        """Handle window close (X) by tearing everything down like Ctrl+C."""
+        try:
+            if self.entry is not None:
+                self.entry.cleanup()
+                self.entry = None
+        except Exception:
+            pass
+
+        for view_attr in ("countdown_view", "play_action_view"):
+            view = getattr(self, view_attr, None)
+            if view is not None:
+                try:
+                    view.destroy()
+                except Exception:
+                    pass
+                setattr(self, view_attr, None)
+
+        try:
+            if self.scoring.game_active:
+                self.scoring.end_game()
+        except Exception:
+            pass
+
+        try:
+            self.root.quit()
+            self.root.destroy()
+        except Exception:
+            pass
 
 
 def launch() -> None:
