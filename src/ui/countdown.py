@@ -18,6 +18,8 @@ class Countdown(tk.Frame):
         background_ms: int = 5000,
         step_ms: int = 1000,
         on_complete: Optional[Callable[[], None]] = None,
+        audio_trigger_value: Optional[int] = None,
+        on_audio_trigger: Optional[Callable[[], None]] = None,
         size: tuple[int, int] | None = None,
     ) -> None:
         super().__init__(master)
@@ -28,7 +30,10 @@ class Countdown(tk.Frame):
         self.background_ms = int(background_ms)
         self.step_ms = int(step_ms)
         self.on_complete = on_complete
+        self.audio_trigger_value = audio_trigger_value
+        self.on_audio_trigger = on_audio_trigger
         self.size = size  # Optional resize target (width, height)
+        self._audio_triggered = False
 
         if not self.images_dir.exists():
             raise FileNotFoundError(f"Images directory not found: {self.images_dir}")
@@ -103,8 +108,19 @@ class Countdown(tk.Frame):
 
     def _phase_numbers(self) -> None:
         if self._num_index < len(self._number_imgs):
-            _, img = self._number_imgs[self._num_index]
+            number_value, img = self._number_imgs[self._num_index]
             self._show(img)
+            if (
+                not self._audio_triggered
+                and self.audio_trigger_value is not None
+                and self.on_audio_trigger is not None
+                and number_value == self.audio_trigger_value
+            ):
+                self._audio_triggered = True
+                try:
+                    self.on_audio_trigger()
+                except Exception:
+                    pass
             self._num_index += 1
             self.after(self.step_ms, self._phase_numbers)
         else:

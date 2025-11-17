@@ -78,6 +78,7 @@ class App:
         self.green_roster: list[str] = []
         self.red_equipment_ids: list[int] = []
         self.green_equipment_ids: list[int] = []
+        self._audio_started = False
 
         # Central GameState (scoring + UI bridge)
         self.game_state = GameState()
@@ -117,6 +118,8 @@ class App:
             background_ms=5000,
             step_ms=1000,
             on_complete=self.launch_game,
+            audio_trigger_value=14,
+            on_audio_trigger=self._trigger_game_audio,
         )
 
     def launch_game(self) -> None:
@@ -143,7 +146,7 @@ class App:
             ASSETS_DIR,
             self.scoring,
             on_return_to_entry=self.return_to_entry,
-            on_timer_start=lambda: _play_random_track(ASSETS_DIR),
+            on_timer_start=self._trigger_game_audio,
         )
 
         # Wire GameState -> PlayAction UI callbacks
@@ -192,6 +195,12 @@ class App:
             )
         
         Thread(target=run_scoring, daemon=True).start()
+
+    def _trigger_game_audio(self) -> None:
+        if self._audio_started:
+            return
+        self._audio_started = True
+        _play_random_track(ASSETS_DIR)
             
     def return_to_entry(self) -> None:
         """Tear down the PlayAction view and show Player Entry again."""
