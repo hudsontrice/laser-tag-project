@@ -6,7 +6,7 @@ import os
 import re
 import tkinter as tk
 from tkinter import font, scrolledtext
-from typing import Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 from pathlib import Path 
 from PIL import Image, ImageTk
 
@@ -19,7 +19,15 @@ TEAM_COLORS = {
 class PlayAction(tk.Frame):
     TEAM_SIZE = 20
 
-    def __init__(self, master: tk.Misc, red_team_players: list, green_team_players: list, assets_dir: Path, scoring_engine=None):
+    def __init__(
+        self,
+        master: tk.Misc,
+        red_team_players: list,
+        green_team_players: list,
+        assets_dir: Path,
+        scoring_engine=None,
+        on_return_to_entry: Optional[Callable[[], None]] = None,
+    ):
         super().__init__(master, bg="#040404")
         self.grid(row=0, column=0, sticky="nsew")
         master.rowconfigure(0, weight=1)
@@ -30,6 +38,10 @@ class PlayAction(tk.Frame):
         self.green_players = green_team_players
         self.scoring_engine = scoring_engine
         self.player_labels: Dict[int, tk.Label] = {}
+        self.player_score_labels: Dict[str, List[tk.Label]] = {"red": [], "green": []}
+        self.player_rows: Dict[str, List[tk.Frame]] = {"red": [], "green": []}
+        self.on_return_to_entry = on_return_to_entry
+        self.return_button: Optional[tk.Button] = None
 
         try:
             icon_path = assets_dir / "baseicon.jpg"
@@ -47,10 +59,6 @@ class PlayAction(tk.Frame):
         self.action_font = font.Font(family="Segoe UI", size=12)
         # build the main UI Layout
         self._build_layout()
-
-        # containers for dynamic score labels and rows so GameState can update them
-        self.player_score_labels: Dict[str, List[tk.Label]] = {"red": [], "green": []}
-        self.player_rows: Dict[str, List[tk.Frame]] = {"red": [], "green": []}
 
         # After layout is created, populate score label references for existing players
         # (the team frames were created during _build_layout)
@@ -215,6 +223,7 @@ class PlayAction(tk.Frame):
             if self.scoring_engine:
                 self.scoring_engine.end_game()
                 self.add_action("GAME OVER! Final scores calculated.", "base_hit")
+            self._show_return_button()
     
     def add_action(self, message: str, tag: str = "normal") -> None:
         """Add a message to the action log with optional color tag."""
@@ -252,6 +261,7 @@ class PlayAction(tk.Frame):
         labels = self.player_score_labels.get(team)
         if labels and 0 <= idx < len(labels):
             labels[idx].config(text=str(score))
+            self._recalculate_team_total(team)
 
     def update_team_scores(self, red_score: int, green_score: int, leader: Optional[str]) -> None:
         """Callback from GameState to update both team score labels and highlight leader."""
@@ -291,6 +301,44 @@ class PlayAction(tk.Frame):
                 self.after(3000, lambda: row.config(bg=orig_bg))
         except Exception:
             pass
+
+    def _recalculate_team_total(self, team: str) -> None:
+        labels = self.player_score_labels.get(team, [])
+        total = 0
+        for label in labels:
+            try:
+                total += int(label.cget("text"))
+            except (ValueError, TypeError):
+                continue
+
+        if team == "red":
+            self.red_score_label.config(text=str(total))
+        elif team == "green":
+            self.green_score_label.config(text=str(total))
+
+    def _show_return_button(self) -> None:
+        if self.return_button is not None:
+            return
+
+        self.return_button = tk.Button(
+            self,
+            text="Return to Player Entry",
+            command=self._handle_return_to_entry,
+            font=self.title_font,
+            bg="#1f1f1f",
+            fg="#ffffff",
+            activebackground="#333333",
+            activeforeground="#ffffff",
+            padx=18,
+            pady=6,
+        )
+        self.return_button.pack(side="bottom", pady=(0, 20))
+
+    def _handle_return_to_entry(self) -> None:
+        if self.return_button is not None:
+            self.return_button.config(state=tk.DISABLED)
+        if callable(self.on_return_to_entry):
+            self.on_return_to_entry()
 
 __all__ = ["PlayAction"]
 

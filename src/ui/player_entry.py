@@ -44,12 +44,6 @@ class PlayerEntry(tk.Frame):
             "green": self._make_empty_slots(),
         }
         
-        # Track equipment IDs separately for scoring file
-        self.equipment_ids: Dict[str, List[int]] = {
-            "red": [],
-            "green": [],
-        }
-
         # Build the UI components that instructors interact with during player entry.
         self._build_layout()
         self.player_entry.focus_set()
@@ -180,11 +174,10 @@ class PlayerEntry(tk.Frame):
 
 ##This is the method to clear the roster, pretty much just cycles through the values and sets them to "", 
     def _clear_roster(self, _event=None) -> None:
-        print("clearing the roster")
         for slots in self.team_slots.values():
             for slot in slots:
                 slot["name"].set("")
-                slot["equip"].set("-")
+                slot["equip"].set("—")
         self._clear_form()
 
 
@@ -268,17 +261,21 @@ class PlayerEntry(tk.Frame):
 
     def get_rosters(self) -> Tuple[List[str], List[str], List[int], List[int]]:
         """Return (red_names, green_names, red_equipment_ids, green_equipment_ids)."""
-        def _extract(team: str) -> List[str]:
+
+        def _collect(team: str) -> Tuple[List[str], List[int]]:
             names: List[str] = []
+            equipment: List[int] = []
             for slot in self.team_slots[team]:
                 name = slot["name"].get().strip()
-                if name:
+                equipment_id = self._extract_equipment_value(slot["equip"].get())
+                if name and equipment_id is not None:
                     names.append(name)
-            return names
+                    equipment.append(equipment_id)
+            return names, equipment
 
-        red_names = _extract("red")
-        green_names = _extract("green")
-        return red_names, green_names, self.equipment_ids["red"].copy(), self.equipment_ids["green"].copy()
+        red_names, red_equipment = _collect("red")
+        green_names, green_equipment = _collect("green")
+        return red_names, green_names, red_equipment, green_equipment
 
     def pop_rosters(self) -> Tuple[List[str], List[str], List[int], List[int]]:
         """Return and clear roster snapshot (names + equipment IDs)."""
@@ -314,9 +311,6 @@ class PlayerEntry(tk.Frame):
             prev_team, prev_index = previous_location
             self.team_slots[prev_team][prev_index]["name"].set("")
             self.team_slots[prev_team][prev_index]["equip"].set("—")
-            # Remove old equipment ID
-            if prev_index < len(self.equipment_ids[prev_team]):
-                self.equipment_ids[prev_team].pop(prev_index)
 
         # Fill the first empty slot to keep the roster tightly packed.
         slot_list = self.team_slots[team]
@@ -324,8 +318,6 @@ class PlayerEntry(tk.Frame):
             if not slot["name"].get():
                 slot["name"].set(f"{codename} (#{player_id})")
                 slot["equip"].set(f"HW {equipment_id}")
-                # Track equipment ID separately
-                self.equipment_ids[team].append(equipment_id)
                 break
 
     def _generate_new_player_id(self) -> int:
@@ -344,7 +336,7 @@ class PlayerEntry(tk.Frame):
 
     def _extract_equipment_value(self, label_text: str) -> Optional[int]:
         label_text = label_text.strip()
-        if not label_text or label_text == "—":
+        if not label_text or label_text in {"—", "-"}:
             return None
         if label_text.startswith("HW"):
             label_text = label_text[2:].strip()

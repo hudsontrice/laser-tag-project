@@ -135,7 +135,14 @@ class App:
 
         self.scoring.start_game()
 
-        self.play_action_view = PlayAction(self.root, self.red_roster, self.green_roster, self.scoring)
+        self.play_action_view = PlayAction(
+            self.root,
+            self.red_roster,
+            self.green_roster,
+            ASSETS_DIR,
+            self.scoring,
+            on_return_to_entry=self.return_to_entry,
+        )
 
         # Wire GameState -> PlayAction UI callbacks
         try:
@@ -186,6 +193,29 @@ class App:
         
         Thread(target=run_scoring, daemon=True).start()
             
+    def return_to_entry(self) -> None:
+        """Tear down the PlayAction view and show Player Entry again."""
+        try:
+            if self.scoring.game_active:
+                self.scoring.end_game()
+        except Exception:
+            pass
+
+        if self.play_action_view is not None:
+            try:
+                self.play_action_view.destroy()
+            except Exception:
+                pass
+            self.play_action_view = None
+
+        # Reset cached rosters/equipment for the next game
+        self.red_roster = []
+        self.green_roster = []
+        self.red_equipment_ids = []
+        self.green_equipment_ids = []
+
+        self.show_entry()
+
 
 def launch() -> None:
     """Create the Tk root and run the app controller."""
