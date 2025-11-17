@@ -9,6 +9,9 @@ from PIL import Image, ImageTk
 
 
 class Countdown(tk.Frame):
+    _BASE_WINDOW_HEIGHT = 820
+    _BASE_OVERLAY_REL_Y = 0.55  # Keep historical placement even if window height changes
+
     def __init__(
         self,
         master: tk.Misc,
@@ -34,6 +37,8 @@ class Countdown(tk.Frame):
         self.on_audio_trigger = on_audio_trigger
         self.size = size  # Optional resize target (width, height)
         self._audio_triggered = False
+        self._overlay_job: Optional[str] = None
+        self._overlay_target_px = self._BASE_OVERLAY_REL_Y * self._BASE_WINDOW_HEIGHT
 
         if not self.images_dir.exists():
             raise FileNotFoundError(f"Images directory not found: {self.images_dir}")
@@ -50,7 +55,9 @@ class Countdown(tk.Frame):
         self.backgound.place(x=0, y=0, relwidth=1, relheight=1)
 
         self._label = tk.Label(self, borderwidth=0, highlightthickness=0)
-        self._label.place(relx=0.5, rely=0.55, anchor="center")
+        self._label.place(relx=0.5, rely=self._BASE_OVERLAY_REL_Y, anchor="center")
+        self._schedule_overlay_reposition()
+        self.bind("<Configure>", self._on_resize)
 
         # State for stepping through numbers
         self._num_index = 0
@@ -95,6 +102,24 @@ class Countdown(tk.Frame):
         # Keep strong reference on the label to prevent GC
         self._label.configure(image=photo)
         self._label.image = photo
+
+    def _schedule_overlay_reposition(self) -> None:
+        if self._overlay_job is None:
+            self._overlay_job = self.after_idle(self._reposition_overlay)
+
+    def _reposition_overlay(self) -> None:
+        self._overlay_job = None
+        height = self.winfo_height()
+        if height <= 0:
+            height = self.master.winfo_height() if isinstance(self.master, tk.Misc) else 0
+        if height <= 0:
+            height = self._BASE_WINDOW_HEIGHT
+
+        rely = max(0.0, min(1.0, self._overlay_target_px / height))
+        self._label.place(relx=0.5, rely=rely, anchor="center")
+
+    def _on_resize(self, _event: tk.Event | None = None) -> None:
+        self._schedule_overlay_reposition()
 
     def _begin_sequence(self) -> None:
         self._show(self._alert_img)

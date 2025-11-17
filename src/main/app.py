@@ -85,6 +85,7 @@ class App:
         self.scoring = Logic(self.game_state) # Create udp send/rec and start score tracking
 
         self.root.title("Photon Entry Terminal")
+        self.root.configure(bg="#000000")
         _center(self.root, WINDOW_GEOMETRY)
         self.root.rowconfigure(0, weight=1)
         self.root.columnconfigure(0, weight=1)
