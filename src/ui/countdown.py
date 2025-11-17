@@ -50,9 +50,10 @@ class Countdown(tk.Frame):
         # State for stepping through numbers
         self._num_index = 0
 
-        # Start sequence: alert → background → numbers
-        self._show(self._alert_img)
-        self.after(self.alert_ms, self._phase_background)
+        # Start sequence: alert → background → numbers. Kick off after idle so Tk
+        # has time to paint the frame without requiring the operator to click.
+        self.after_idle(self._begin_sequence)
+        self.after_idle(lambda: self.focus_set())
 
     # ------------------------
     # Image loading utilities
@@ -89,6 +90,10 @@ class Countdown(tk.Frame):
         # Keep strong reference on the label to prevent GC
         self._label.configure(image=photo)
         self._label.image = photo
+
+    def _begin_sequence(self) -> None:
+        self._show(self._alert_img)
+        self.after(self.alert_ms, self._phase_background)
 
     def _phase_background(self) -> None:
         if self._number_imgs:

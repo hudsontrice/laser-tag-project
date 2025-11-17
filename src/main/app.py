@@ -143,6 +143,7 @@ class App:
             ASSETS_DIR,
             self.scoring,
             on_return_to_entry=self.return_to_entry,
+            on_timer_start=lambda: _play_random_track(ASSETS_DIR),
         )
 
         # Wire GameState -> PlayAction UI callbacks
@@ -182,8 +183,6 @@ class App:
 
         # Keep legacy reference for Logic fallback logging
         self.scoring.play_action_screen = self.play_action_view
-        
-        _play_random_track(ASSETS_DIR)
         
         # Start scoring UDP listener in background thread
         def run_scoring():

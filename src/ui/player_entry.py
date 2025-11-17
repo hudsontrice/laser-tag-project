@@ -122,10 +122,10 @@ class PlayerEntry(tk.Frame):
         shortcuts_hint.pack(fill="x", padx=20, pady=(0, 10))
         tk.Label(
             shortcuts_hint,
-            text="⌨ Shortcuts: F5 = Start Game  |  F12 = Clear Roster",
+            text="Keyboard shortcuts: Press F5 to start the match, F12 to clear both rosters.",
             bg="#040404",
-            fg="#888888",
-            font=("Segoe UI", 9, "italic")
+            fg="#ffd966",
+            font=("Segoe UI", 11, "bold")
         ).pack(anchor="center")
 
         self.player_entry.bind("<FocusOut>", self._autofill_codename)

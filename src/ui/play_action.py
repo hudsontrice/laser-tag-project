@@ -26,6 +26,7 @@ class PlayAction(tk.Frame):
         assets_dir: Path,
         scoring_engine=None,
         on_return_to_entry: Optional[Callable[[], None]] = None,
+        on_timer_start: Optional[Callable[[], None]] = None,
     ):
         super().__init__(master, bg="#040404")
         self.grid(row=0, column=0, sticky="nsew")
@@ -40,8 +41,10 @@ class PlayAction(tk.Frame):
         self.player_score_labels: Dict[str, List[tk.Label]] = {"red": [], "green": []}
         self.player_rows: Dict[str, List[tk.Frame]] = {"red": [], "green": []}
         self.on_return_to_entry = on_return_to_entry
+        self.on_timer_start = on_timer_start
         self.return_button: Optional[tk.Button] = None
         self._game_over = False
+        self._timer_started = False
 
         icon_size = (20, 20)
         try:
@@ -225,6 +228,14 @@ class PlayAction(tk.Frame):
 
     #timer function
     def updateTimer(self):
+        if not self._timer_started:
+            self._timer_started = True
+            if callable(self.on_timer_start):
+                try:
+                    self.on_timer_start()
+                except Exception:
+                    pass
+
         if self.timeleft > 0:
             mins = self.timeleft // 60
             seconds = self.timeleft % 60
