@@ -22,7 +22,8 @@ from src.net.udp_sender import UDPSender
 
 
 SPLASH_DURATION_MS = 3000
-WINDOW_GEOMETRY = os.getenv("PHOTON_WINDOW_GEOMETRY", "1024x720")
+# Default window size large enough to show both team panes without manual maximization.
+WINDOW_GEOMETRY = os.getenv("PHOTON_WINDOW_GEOMETRY", "1366x820")
 ASSETS_DIR = Path(__file__).resolve().parents[1] / "assets"
 COUNTDOWN_IMAGES_DIR = str(ASSETS_DIR)
 

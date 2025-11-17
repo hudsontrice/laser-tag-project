@@ -99,8 +99,9 @@ class Logic:
             else:
                 self.deduct_points(equipment_id_1, 10)
                 self.deduct_points(equipment_id_2, 10)
-            # Send both equipment IDs in a single message separated by colon
-            self.udp_sender.send_message(f"{equipment_id_1}:{equipment_id_2}")
+            # Send each equipment ID as its own transmission per hardware contract
+            self.udp_sender.send_message(f"{equipment_id_1}")
+            self.udp_sender.send_message(f"{equipment_id_2}")
             # Log to UI
             if self.play_action_screen:
                 attacker_name = self.get_player_name(equipment_id_1)

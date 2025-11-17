@@ -42,6 +42,7 @@ class PlayAction(tk.Frame):
         self.player_rows: Dict[str, List[tk.Frame]] = {"red": [], "green": []}
         self.on_return_to_entry = on_return_to_entry
         self.return_button: Optional[tk.Button] = None
+        self._game_over = False
 
         try:
             icon_path = assets_dir / "baseicon.jpg"
@@ -131,6 +132,21 @@ class PlayAction(tk.Frame):
         self.action_log.tag_config("normal", foreground="#00ff00")
         self.action_log.tag_config("friendly_fire", foreground="#ff6600")
         self.action_log.tag_config("base_hit", foreground="#ffff00", font=("Segoe UI", 12, "bold"))
+
+        # Persistent end/return button anchored below the action log
+        self.return_button = tk.Button(
+            self,
+            text="End Game",
+            command=self._handle_end_game_click,
+            font=self.title_font,
+            bg="#1f1f1f",
+            fg="#ffffff",
+            activebackground="#333333",
+            activeforeground="#ffffff",
+            padx=18,
+            pady=6,
+        )
+        self.return_button.pack(side="bottom", pady=(0, 20))
 
     def _create_team_frame(self, parent: tk.Frame, title: str, bg_color: str, players: List[str]) -> tk.Frame:
         """Creates a team frame and populates it with players."""
@@ -223,7 +239,7 @@ class PlayAction(tk.Frame):
             if self.scoring_engine:
                 self.scoring_engine.end_game()
                 self.add_action("GAME OVER! Final scores calculated.", "base_hit")
-            self._show_return_button()
+            self._set_game_over_state()
     
     def add_action(self, message: str, tag: str = "normal") -> None:
         """Add a message to the action log with optional color tag."""
@@ -316,25 +332,23 @@ class PlayAction(tk.Frame):
         elif team == "green":
             self.green_score_label.config(text=str(total))
 
-    def _show_return_button(self) -> None:
+    def _handle_end_game_click(self) -> None:
+        """Button always visible: ends the game early or returns after completion."""
+        if not self._game_over:
+            # Early end requested; stop scoring and trigger game-over UI state
+            if self.scoring_engine:
+                self.scoring_engine.end_game()
+            self.add_action("Game ended early by operator.", "friendly_fire")
+            self._set_game_over_state()
+        else:
+            self._return_to_entry()
+
+    def _set_game_over_state(self) -> None:
+        self._game_over = True
         if self.return_button is not None:
-            return
+            self.return_button.config(text="Return to Player Entry Screen")
 
-        self.return_button = tk.Button(
-            self,
-            text="Return to Player Entry",
-            command=self._handle_return_to_entry,
-            font=self.title_font,
-            bg="#1f1f1f",
-            fg="#ffffff",
-            activebackground="#333333",
-            activeforeground="#ffffff",
-            padx=18,
-            pady=6,
-        )
-        self.return_button.pack(side="bottom", pady=(0, 20))
-
-    def _handle_return_to_entry(self) -> None:
+    def _return_to_entry(self) -> None:
         if self.return_button is not None:
             self.return_button.config(state=tk.DISABLED)
         if callable(self.on_return_to_entry):
