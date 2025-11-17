@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import os
+import re
 import tkinter as tk
 from tkinter import font, scrolledtext
 from typing import Dict, List, Optional, Tuple
+from pathlib import Path 
+from PIL import Image, ImageTk
 
 # Define team colors from the project for consistency
 TEAM_COLORS = {
@@ -16,7 +19,7 @@ TEAM_COLORS = {
 class PlayAction(tk.Frame):
     TEAM_SIZE = 20
 
-    def __init__(self, master: tk.Misc, red_team_players: list, green_team_players: list, scoring_engine=None):
+    def __init__(self, master: tk.Misc, red_team_players: list, green_team_players: list, assets_dir: Path, scoring_engine=None):
         super().__init__(master, bg="#040404")
         self.grid(row=0, column=0, sticky="nsew")
         master.rowconfigure(0, weight=1)
@@ -26,6 +29,15 @@ class PlayAction(tk.Frame):
         self.red_players = red_team_players
         self.green_players = green_team_players
         self.scoring_engine = scoring_engine
+        self.player_labels: Dict[int, tk.Label] = {}
+
+        try:
+            icon_path = assets_dir / "baseicon.jpg"
+            icon_img = Image.open(icon_path).resize((20, 20), Image.LANCZOS)
+            self.base_icon_image = ImageTk.PhotoImage(icon_img)
+        except Exception as e:
+            print(f"Error loading baseicon.jpg: {e}")
+            self.base_icon_image = None
 
         # define fonts
         self.title_font = font.Font(family="Segoe UI", size=24, weight="bold")
@@ -123,11 +135,13 @@ class PlayAction(tk.Frame):
         rows.pack(fill="both", expand=True)
 
         # add players to the roster
-        # for this sprint, display the names passed from player_entry
-        team_key = title.split()[0].lower() if title else "red"
-        for idx, player_name in enumerate(players):
+        for player_name in players:
             row = tk.Frame(rows, bg=bg_color)
             row.pack(fill="x", pady=2)
+
+            # Base Icon Label
+            icon_label = tk.Label(row, bg=bg_color, width=24)
+            icon_label.pack(side="left", padx=(0,2))
 
             # Player Name (e.g., "Codename (#ID)")
             tk.Label(
@@ -151,7 +165,32 @@ class PlayAction(tk.Frame):
                 self.player_score_labels.setdefault(team_key, []).append(score_label)
                 self.player_rows.setdefault(team_key, []).append(row)
 
+            # save reference to the icon label
+            player_id = self._parse_player_id(player_name)
+            if player_id is not None:
+                self.player_labels[player_id] = icon_label
+
         return frame
+
+    def add_base_icon(self, player_id: int):
+        """Finds a player's icon label and adds the base icon"""
+        if self.base_icon_image and (player_id in self.player_labels):
+            icon_label = self.player_labels[player_id]
+
+            icon_label.config(image=self.base_icon_image)
+            icon_label.image = self.base_icon_image
+        elif player_id not in self.player_labels:
+            print(f"Error: Could not find UI label for player {player_id}")
+
+    def _parse_player_id(self, player_name: str) -> Optional[int]:
+        """Extracts the player ID (e.g., '12') from a name string like 'Cobra' (#12)'."""
+        match = re.search(r"#(\d+)\)$", player_name)
+        if match:
+            try:
+                return int(match.group(1))
+            except ValueError:
+                return None
+        return None
 
     #timer function
     def updateTimer(self):
