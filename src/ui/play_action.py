@@ -134,6 +134,15 @@ class PlayAction(tk.Frame):
         rows = tk.Frame(frame, bg=bg_color)
         rows.pack(fill="both", expand=True)
 
+        # Determine which team this frame represents so we can store score labels
+        title_lower = title.lower()
+        if "red" in title_lower:
+            team_key = "red"
+        elif "green" in title_lower:
+            team_key = "green"
+        else:
+            team_key = "unknown"
+
         # add players to the roster
         for player_name in players:
             row = tk.Frame(rows, bg=bg_color)
@@ -195,7 +204,6 @@ class PlayAction(tk.Frame):
     #timer function
     def updateTimer(self):
         if self.timeleft > 0:
-            print("timer running")
             mins = self.timeleft // 60
             seconds = self.timeleft % 60
             self.timer.config(text=f"{mins:02d}:{seconds:02d}")
