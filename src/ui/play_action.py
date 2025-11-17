@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import re
 import tkinter as tk
 from tkinter import font, scrolledtext
 from typing import Callable, Dict, List, Optional, Tuple
@@ -37,7 +36,7 @@ class PlayAction(tk.Frame):
         self.red_players = red_team_players
         self.green_players = green_team_players
         self.scoring_engine = scoring_engine
-        self.player_labels: Dict[int, tk.Label] = {}
+        self.player_icon_labels: Dict[str, List[tk.Label]] = {"red": [], "green": []}
         self.player_score_labels: Dict[str, List[tk.Label]] = {"red": [], "green": []}
         self.player_rows: Dict[str, List[tk.Frame]] = {"red": [], "green": []}
         self.on_return_to_entry = on_return_to_entry
@@ -193,37 +192,25 @@ class PlayAction(tk.Frame):
             if team_key in self.player_score_labels:
                 self.player_score_labels[team_key].append(score_label)
                 self.player_rows[team_key].append(row)
+                self.player_icon_labels[team_key].append(icon_label)
             else:
                 # fallback if unexpected title
                 self.player_score_labels.setdefault(team_key, []).append(score_label)
                 self.player_rows.setdefault(team_key, []).append(row)
-
-            # save reference to the icon label
-            player_id = self._parse_player_id(player_name)
-            if player_id is not None:
-                self.player_labels[player_id] = icon_label
+                self.player_icon_labels.setdefault(team_key, []).append(icon_label)
 
         return frame
 
-    def add_base_icon(self, player_id: int):
-        """Finds a player's icon label and adds the base icon"""
-        if self.base_icon_image and (player_id in self.player_labels):
-            icon_label = self.player_labels[player_id]
+    def add_base_icon(self, team: str, index: int) -> None:
+        """Adds the base icon next to the player's name for the remainder of the game."""
+        if not self.base_icon_image:
+            return
 
+        labels = self.player_icon_labels.get(team)
+        if labels and 0 <= index < len(labels):
+            icon_label = labels[index]
             icon_label.config(image=self.base_icon_image)
             icon_label.image = self.base_icon_image
-        elif player_id not in self.player_labels:
-            print(f"Error: Could not find UI label for player {player_id}")
-
-    def _parse_player_id(self, player_name: str) -> Optional[int]:
-        """Extracts the player ID (e.g., '12') from a name string like 'Cobra' (#12)'."""
-        match = re.search(r"#(\d+)\)$", player_name)
-        if match:
-            try:
-                return int(match.group(1))
-            except ValueError:
-                return None
-        return None
 
     #timer function
     def updateTimer(self):
@@ -308,6 +295,7 @@ class PlayAction(tk.Frame):
 
         # highlight the player's row for a few seconds
         try:
+            self.add_base_icon(pref.team, pref.index)
             rows = self.player_rows.get(pref.team, [])
             if 0 <= pref.index < len(rows):
                 row = rows[pref.index]
