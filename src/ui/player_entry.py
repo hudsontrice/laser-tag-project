@@ -55,8 +55,18 @@ class PlayerEntry(tk.Frame):
         ]
 
     def _build_layout(self) -> None:
+        shortcuts_hint = tk.Frame(self, bg="#040404")
+        shortcuts_hint.pack(fill="x", padx=20, pady=(12, 0))
+        tk.Label(
+            shortcuts_hint,
+            text="Keyboard shortcuts: Press F5 to start the match, F12 to clear both rosters.",
+            bg="#040404",
+            fg="#ffd966",
+            font=("Segoe UI", 11, "bold"),
+        ).pack(anchor="center")
+
         top = tk.Frame(self, bg="#040404")
-        top.pack(fill="x", padx=20, pady=12)
+        top.pack(fill="x", padx=20, pady=(8, 12))
 
         # Layout contains three major regions: the input form, UDP settings, and the roster board.
         form = tk.LabelFrame(top, text="Player Entry", bg="#111111", fg="#e0e0e0", padx=16, pady=12)
@@ -116,17 +126,6 @@ class PlayerEntry(tk.Frame):
         self._create_team_frame(board, "Green Team", "#002f00", self.team_slots["green"]).pack(
             side="left", expand=True, fill="both"
         )
-
-        # Keyboard shortcuts hint
-        shortcuts_hint = tk.Frame(self, bg="#040404")
-        shortcuts_hint.pack(fill="x", padx=20, pady=(0, 10))
-        tk.Label(
-            shortcuts_hint,
-            text="Keyboard shortcuts: Press F5 to start the match, F12 to clear both rosters.",
-            bg="#040404",
-            fg="#ffd966",
-            font=("Segoe UI", 11, "bold")
-        ).pack(anchor="center")
 
         self.player_entry.bind("<FocusOut>", self._autofill_codename)
         self.player_entry.bind("<Return>", self._autofill_codename)
