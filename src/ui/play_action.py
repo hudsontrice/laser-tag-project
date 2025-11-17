@@ -43,13 +43,21 @@ class PlayAction(tk.Frame):
         self.return_button: Optional[tk.Button] = None
         self._game_over = False
 
+        icon_size = (20, 20)
         try:
             icon_path = assets_dir / "baseicon.jpg"
-            icon_img = Image.open(icon_path).resize((20, 20), Image.LANCZOS)
+            icon_img = Image.open(icon_path).resize(icon_size, Image.LANCZOS)
             self.base_icon_image = ImageTk.PhotoImage(icon_img)
         except Exception as e:
             print(f"Error loading baseicon.jpg: {e}")
             self.base_icon_image = None
+
+        # Transparent placeholder used so enabling the icon later doesn't shift layout
+        try:
+            blank_img = Image.new("RGBA", icon_size, (0, 0, 0, 0))
+            self.blank_icon_image = ImageTk.PhotoImage(blank_img)
+        except Exception:
+            self.blank_icon_image = None
 
         # define fonts
         self.title_font = font.Font(family="Segoe UI", size=24, weight="bold")
@@ -173,6 +181,9 @@ class PlayAction(tk.Frame):
 
             # Base Icon Label
             icon_label = tk.Label(row, bg=bg_color, width=24)
+            if self.blank_icon_image:
+                icon_label.config(image=self.blank_icon_image)
+                icon_label.image = self.blank_icon_image
             icon_label.pack(side="left", padx=(0,2))
 
             # Player Name (e.g., "Codename (#ID)")
