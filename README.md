@@ -31,20 +31,6 @@ You can override the Python interpreter with `PYTHON=/path/to/python bash script
 ```bash
 python3 -m src.main.app
 ```
-## Repository Contents
-
-```
-README.md             # Project documentation and instructions
-requirements.txt      # Python dependencies installed by the helper script
-.gitignore            # Specifies files Git should ignore
-.gitattributes        # Configures how Git handles line endings and file types
-scripts/install.sh    # Bash installer that bootstraps the environment
-scripts/run.sh        # Placeholder for future launch helpers
-src/                  # Application source code
-tests/                # pytest-based regression tests
-```
-
----
 
 ## src/ Directory Contents
 
