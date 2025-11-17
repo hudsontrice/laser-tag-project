@@ -45,9 +45,16 @@ class PlayAction(tk.Frame):
         self.timer_font = font.Font(family="Segoe UI", size=28, weight="bold")
         self.player_font = font.Font(family="Segoe UI", size=14)
         self.action_font = font.Font(family="Segoe UI", size=12)
-
         # build the main UI Layout
         self._build_layout()
+
+        # containers for dynamic score labels and rows so GameState can update them
+        self.player_score_labels: Dict[str, List[tk.Label]] = {"red": [], "green": []}
+        self.player_rows: Dict[str, List[tk.Frame]] = {"red": [], "green": []}
+
+        # After layout is created, populate score label references for existing players
+        # (the team frames were created during _build_layout)
+        # Note: _create_team_frame will append to these lists when creating rows.
         self.updateTimer()
 
     def _build_layout(self) -> None:
@@ -60,7 +67,8 @@ class PlayAction(tk.Frame):
 
         # red team score (placeholder)
         tk.Label(top_frame, text="RED TEAM", fg="#f55", bg="#040404", font=self.title_font).pack(side="left", padx=50)
-        tk.Label(top_frame, text="0", fg="white", bg="#040404", font=self.score_font).pack(side="left")
+        self.red_score_label = tk.Label(top_frame, text="0", fg="white", bg="#040404", font=self.score_font)
+        self.red_score_label.pack(side="left")
 
         ##time left variable for the set at 360 for 6 minutes
         self.timeleft = 360
@@ -71,7 +79,8 @@ class PlayAction(tk.Frame):
         self.timer.pack(side="left", fill="x", expand=True)   
 
         # green team score (placeholder)
-        tk.Label(top_frame, text="0", fg="white", bg="#040404", font=self.score_font).pack(side="right", padx=10)
+        self.green_score_label = tk.Label(top_frame, text="0", fg="white", bg="#040404", font=self.score_font)
+        self.green_score_label.pack(side="right", padx=10)
         tk.Label(top_frame, text="GREEN TEAM", fg="#5f5", bg="#040404", font=self.title_font).pack(side="right", padx=50)
 
         # roster frame
@@ -141,10 +150,20 @@ class PlayAction(tk.Frame):
             ).pack(side="left", padx=6)
 
             # Player Score (placeholder)
-            tk.Label(
+            score_label = tk.Label(
                 row, text="0", width=8, anchor="e",
                 bg=bg_color, fg="#cccccc", font=self.player_font
-            ).pack(side="right", padx=6)
+            )
+            score_label.pack(side="right", padx=6)
+
+            # store references so GameState can update them later
+            if team_key in self.player_score_labels:
+                self.player_score_labels[team_key].append(score_label)
+                self.player_rows[team_key].append(row)
+            else:
+                # fallback if unexpected title
+                self.player_score_labels.setdefault(team_key, []).append(score_label)
+                self.player_rows.setdefault(team_key, []).append(row)
 
             # save reference to the icon label
             player_id = self._parse_player_id(player_name)
@@ -210,6 +229,60 @@ class PlayAction(tk.Frame):
         """Log a base hit event."""
         message = f"** {player_name} DESTROYED {base_name.upper()} BASE! (+100 points) **"
         self.add_action(message, "base_hit")
+
+    # ----- GameState UI callbacks -----
+    def update_player_score(self, pref, score: int) -> None:
+        """Callback from GameState to update a single player's score label.
+        pref is expected to have attributes: team ("red"/"green") and index (int).
+        """
+        try:
+            team = pref.team
+            idx = pref.index
+        except Exception:
+            return
+
+        labels = self.player_score_labels.get(team)
+        if labels and 0 <= idx < len(labels):
+            labels[idx].config(text=str(score))
+
+    def update_team_scores(self, red_score: int, green_score: int, leader: Optional[str]) -> None:
+        """Callback from GameState to update both team score labels and highlight leader."""
+        try:
+            self.red_score_label.config(text=str(red_score))
+            self.green_score_label.config(text=str(green_score))
+        except Exception:
+            return
+
+        # simple visual cue for leader: change timer color if tied/leader
+        if leader is None:
+            self.red_score_label.config(fg="white")
+            self.green_score_label.config(fg="white")
+        elif leader == "red":
+            self.red_score_label.config(fg="#ff0")
+            self.green_score_label.config(fg="white")
+        else:
+            self.green_score_label.config(fg="#ff0")
+            self.red_score_label.config(fg="white")
+
+    def on_base_hit(self, pref, base_team: str) -> None:
+        """Callback to highlight a player row briefly and log the base hit."""
+        # Log the event (PlayAction already has logging helpers)
+        try:
+            self.log_base_hit(pref.name, base_team)
+        except Exception:
+            pass
+
+        # highlight the player's row for a few seconds
+        try:
+            rows = self.player_rows.get(pref.team, [])
+            if 0 <= pref.index < len(rows):
+                row = rows[pref.index]
+                orig_bg = row.cget("bg")
+                row.config(bg="#444400")
+                # restore after 3s
+                self.after(3000, lambda: row.config(bg=orig_bg))
+        except Exception:
+            pass
 
 __all__ = ["PlayAction"]
 

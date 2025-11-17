@@ -13,6 +13,7 @@ High team score will be flashing during play
 '''
 
 from typing import Optional, TYPE_CHECKING
+from src.logic.game_state import GameState
 from src.net.udp_sender import UDPSender
 from src.net.udp_receiver import UDPServer
 
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
 
 
 class Logic:
-    def __init__(self):
+    def __init__(self, game_state: Optional[GameState] = None):
         # Team scores
         self.redTeamScore = 0
         self.greenTeamScore = 0
@@ -38,7 +39,9 @@ class Logic:
         # UDP connections
         self.udp_sender = UDPSender()
         self.udp_receiver = UDPServer()
-        
+        # Optional GameState instance (central scoring + UI bridge)
+        self.game_state = game_state
+
         # UI reference (set by app.py later)
         self.play_action_screen: Optional['PlayAction'] = None
 
@@ -50,25 +53,38 @@ class Logic:
             print(f"Invalid UDP message format: {data}")
             return
         # equipment 1 tags equipment 2
+        # Debug: report team membership for tracing friendly-fire vs valid hit
+        try:
+            attacker_is_red = self.is_red_team(equipment_id_1)
+            victim_is_red = self.is_red_team(equipment_id_2)
+            attacker_is_green = self.is_green_team(equipment_id_1)
+            victim_is_green = self.is_green_team(equipment_id_2)
+        except Exception:
+            attacker_is_red = attacker_is_green = victim_is_red = victim_is_green = False
 
-        #base hit logig
+        #base hit logging
         if equipment_id_2 == 43 : #green base hit
-            if self.is_red_team(equipment_id_1): 
-                self.award_base_points(equipment_id_1, 43)
+            if self.is_red_team(equipment_id_1):
+                # If GameState is present, delegate base scoring + UI callback
+                if self.game_state:
+                    self.game_state.base_hit(equipment_id_1, "green")
+                else:
+                    self.award_base_points(equipment_id_1, 43)
+                    if self.play_action_screen:
+                        player_name = self.get_player_name(equipment_id_1)
+                        self.play_action_screen.log_base_hit(player_name, "green")
                 self.udp_sender.send_message(f"{equipment_id_1}")  # Acknowledge base hit
-                # Log to UI
-                if self.play_action_screen:
-                    player_name = self.get_player_name(equipment_id_1)
-                    self.play_action_screen.log_base_hit(player_name, "green")
             return  # Don't process as regular tag
         elif equipment_id_2 == 53: #red base hit
-            if self.is_green_team(equipment_id_1): 
-                self.award_base_points(equipment_id_1, 53)
+            if self.is_green_team(equipment_id_1):
+                if self.game_state:
+                    self.game_state.base_hit(equipment_id_1, "red")
+                else:
+                    self.award_base_points(equipment_id_1, 53)
+                    if self.play_action_screen:
+                        player_name = self.get_player_name(equipment_id_1)
+                        self.play_action_screen.log_base_hit(player_name, "red")
                 self.udp_sender.send_message(f"{equipment_id_1}")  # Acknowledge base hit
-                # Log to UI
-                if self.play_action_screen:
-                    player_name = self.get_player_name(equipment_id_1)
-                    self.play_action_screen.log_base_hit(player_name, "red")
             return  # Don't process as regular tag 
 
         # individual tag logic - check if same team (both odd or both even)
@@ -76,8 +92,13 @@ class Logic:
              (self.is_green_team(equipment_id_1) and self.is_green_team(equipment_id_2)):
             # Friendly fire - both lose points
             print(f"FRIENDLY FIRE! Player {equipment_id_1} hit teammate {equipment_id_2}")
-            self.deduct_points(equipment_id_1, 10)
-            self.deduct_points(equipment_id_2, 10)
+            # Extra debug: print team membership
+            print(f"Teams -> attacker red:{attacker_is_red} green:{attacker_is_green}; victim red:{victim_is_red} green:{victim_is_green}")
+            if self.game_state:
+                self.game_state.friendly_fire_pair(equipment_id_1, equipment_id_2, penalty_each=10)
+            else:
+                self.deduct_points(equipment_id_1, 10)
+                self.deduct_points(equipment_id_2, 10)
             # Send both equipment IDs in a single message separated by colon
             self.udp_sender.send_message(f"{equipment_id_1}:{equipment_id_2}")
             # Log to UI
@@ -88,7 +109,10 @@ class Logic:
         
         else:
             # Opposing teams - valid hit, attacker gets points
-            self.award_points(equipment_id_1, 10)
+            if self.game_state:
+                self.game_state.add_points(equipment_id_1, 10)
+            else:
+                self.award_points(equipment_id_1, 10)
             self.udp_sender.send_message(f"{equipment_id_2}") #send back victim equipment id
             # Log to UI
             if self.play_action_screen:
@@ -100,12 +124,18 @@ class Logic:
         
     def is_red_team(self, equipment_id: int) -> bool:
         """Red team = odd equipment IDs."""
-        return equipment_id % 2 == 1
+        try:
+            return equipment_id in self.red_equipment_ids
+        except AttributeError:
+            return equipment_id % 2 == 1  # fallback
             
 
     def is_green_team(self, equipment_id: int) -> bool:
         """Green team = even equipment IDs."""
-        return equipment_id % 2 == 0
+        try:
+            return equipment_id in self.green_equipment_ids
+        except AttributeError:
+            return equipment_id % 2 == 0 #fallback
     
     def get_player_name(self, equipment_id: int) -> str:
         """Get player name from equipment ID using roster lookup."""
@@ -132,6 +162,12 @@ class Logic:
         self.green_names = green_names
         
         print("Scoring main loop started. Listening for UDP events...")
+        # Register rosters with GameState if present so UI updates can be emitted
+        if self.game_state:
+            try:
+                self.game_state.register_rosters(red_names, green_names, red_equipment_ids, green_equipment_ids)
+            except Exception:
+                pass
         while self.game_active:
             message, addr = self.udp_receiver.listener()  # Unpack tuple properly
             if message:
