@@ -2,10 +2,20 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 import tkinter as tk
 from PIL import Image, ImageTk
+
+if hasattr(Image, "Resampling"):
+    RESAMPLE_LANCZOS = Image.Resampling.LANCZOS
+else:
+    lanczos = getattr(Image, "LANCZOS", None)
+    if lanczos is None:
+        lanczos = getattr(Image, "ANTIALIAS", None)
+    if lanczos is None:
+        lanczos = getattr(Image, "BILINEAR", 2)
+    RESAMPLE_LANCZOS = lanczos
 
 
 class Countdown(tk.Frame):
@@ -15,7 +25,7 @@ class Countdown(tk.Frame):
     def __init__(
         self,
         master: tk.Misc,
-        images_dir: str | Path,
+        images_dir: Union[str, Path],
         *,
         alert_ms: int = 5000,
         background_ms: int = 5000,
@@ -23,7 +33,7 @@ class Countdown(tk.Frame):
         on_complete: Optional[Callable[[], None]] = None,
         audio_trigger_value: Optional[int] = None,
         on_audio_trigger: Optional[Callable[[], None]] = None,
-        size: tuple[int, int] | None = None,
+        size: Optional[tuple[int, int]] = None,
     ) -> None:
         super().__init__(master)
         self.pack(expand=True, fill="both")
@@ -76,7 +86,7 @@ class Countdown(tk.Frame):
             raise FileNotFoundError(f"Required image missing: {path}")
         img = Image.open(path)
         if self.size:
-            img = img.resize(self.size, Image.LANCZOS)
+            img = img.resize(self.size, RESAMPLE_LANCZOS)
         return ImageTk.PhotoImage(img)
 
     def _load_number_images(self) -> list[tuple[int, ImageTk.PhotoImage]]:
@@ -99,9 +109,9 @@ class Countdown(tk.Frame):
     # Sequencing
     # ------------------------
     def _show(self, photo: ImageTk.PhotoImage) -> None:
-        # Keep strong reference on the label to prevent GC
+        # Keep strong reference on the label to prevent error
         self._label.configure(image=photo)
-        self._label.image = photo
+        setattr(self._label, "image", photo)
 
     def _schedule_overlay_reposition(self) -> None:
         if self._overlay_job is None:
@@ -118,7 +128,7 @@ class Countdown(tk.Frame):
         rely = max(0.0, min(1.0, self._overlay_target_px / height))
         self._label.place(relx=0.5, rely=rely, anchor="center")
 
-    def _on_resize(self, _event: tk.Event | None = None) -> None:
+    def _on_resize(self, _event: Optional[tk.Event] = None) -> None:
         self._schedule_overlay_reposition()
 
     def _begin_sequence(self) -> None:
